@@ -2,6 +2,8 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
+@plugin "tailwind-scrollbar";
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
@@ -114,6 +116,15 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.552 0.016 285.938);
+}
+
+.thinScrollBar{
+  &::-webkit-scrollbar-track{
+    @apply bg-zinc-800
+  }
+  &::-webkit-scrollbar-thumb{
+    @apply w-0.5
+  }
 }
 
 @layer base {
