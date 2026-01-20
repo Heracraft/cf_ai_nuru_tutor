@@ -1,1 +1,0 @@
-- `add the tailwind Class Sorting plugin for Prettier. use pnpm`, model: Gemini 3 Pro

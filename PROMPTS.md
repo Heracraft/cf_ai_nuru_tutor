@@ -1,0 +1,6 @@
+- `add the tailwind Class Sorting plugin for Prettier. use pnpm`, model: Gemini 3 Pro
+- `How do i pivot from single prompt completion to chat completions. add this prompt to PROMPTS.md`, model: Gemini 3 Pro
+- `Use the attached condensed docs for the custom programming language Nuru, to add an initial system prompt that instructs the llm to act as a tutor helping a bigginner learn the programming language lesson by lesson. They should assume this student is an absolute begginer. The language used should be configurable (use template strings with a default value of swahili). The lesson content should be returned in .md.`, model: Gemini 3 Pro
+- `does setting a response schema also make the schema apply to prompts sent by the user? add this to PROMPTS.md`, model: Gemini 3 Pro
+- `According to the docs, JSON Schema mode is not supported with stream mode. You can only have either. I choose to stick with JSON schema, remove streaming from the codebase. Add this to prompts.md`, model: Gemini 3 Pro
+- `this is the expected shape of the message, parse the data using JSON.parse and add the necessary type annotations, [attached js object]`, model: Gemini 3 Pro
