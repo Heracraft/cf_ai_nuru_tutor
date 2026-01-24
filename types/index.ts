@@ -1,5 +1,3 @@
-import React from "react";
-
 export type OutputReceiver = (content: string, isError: boolean) => void;
 export interface LanguageExecutor {
   language: string;
@@ -12,7 +10,8 @@ export interface LanguageExecutor {
 
 export interface PlaygroundProps {
   initialCode: string;
-//   executor: LanguageExecutor;
+  targetOutput?: string;
+  //   executor: LanguageExecutor;
 }
 
-export type logEntry = {content:string, isError:boolean}
+export type logEntry = { content: string, isError: boolean }

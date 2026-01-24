@@ -22,7 +22,7 @@ import { TerminalIcon, PlayIcon, SparkleIcon } from "lucide-react";
 
 import { PlaygroundProps, LanguageExecutor, logEntry } from "@/types";
 
-export function Playground({ initialCode }: PlaygroundProps) {
+export function Playground({ initialCode, targetOutput }: PlaygroundProps) {
 	const [code, setCode] = useState(initialCode);
 	const [logs, setLogs] = useState<logEntry[]>([]);
 
@@ -60,11 +60,10 @@ export function Playground({ initialCode }: PlaygroundProps) {
 				</ResizablePanel>
 				<ResizableHandle withHandle />
 				<ResizablePanel defaultSize={35} className="flex flex-col">
-					<div className="flex flex-1 flex-col overflow-y-auto px-2 py-1 scrollbar scrollbar-thumb-zinc-600 scrollbar-track-zinc-800">
+					<div className="scrollbar scrollbar-thumb-zinc-600 scrollbar-track-zinc-800 flex flex-1 flex-col overflow-y-auto px-2 py-1">
 						{logs.length == 0 ? (
 							<p className="text-muted-foreground text-base italic">
-								&gt;
-								Matokeo yatatokea hapa
+								&gt; Matokeo yatatokea hapa
 							</p>
 						) : (
 							<>

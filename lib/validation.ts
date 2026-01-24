@@ -5,6 +5,10 @@ export const lessonResponseSchema = z.object({
 	lessonContent: z.string(),
 	// sampleCode: z.string(),
 	nextLesson: z.string(),
+  exercise: z.object({
+    initialCode: z.string(),
+    targetOutput: z.string(),
+  }),
   order: z.number(),
   isStartOfNewLesson: z.boolean(),
 });

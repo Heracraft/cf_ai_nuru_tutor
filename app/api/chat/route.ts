@@ -4,19 +4,18 @@ import { google } from "@ai-sdk/google";
 
 import { createWorkersAI } from "workers-ai-provider";
 
-import {lessonResponseSchema} from "@/lib/validation"
+import { lessonResponseSchema } from "@/lib/validation"
 
 import {
-	generateObject,
-	generateText,
-	convertToModelMessages,
-	Output,
-	streamText,
+  convertToModelMessages,
+  Output,
+  streamText,
 } from "ai";
+import { z } from "zod";
 
 interface lessonRequestBody {
-	messages: any[];
-	language: "Swahili" | "English";
+  messages: any[];
+  language: "Swahili" | "English";
 }
 
 const NURU_DOCS = `
@@ -116,8 +115,8 @@ myFunc = unda(param1, param2="default") {
 `;
 
 interface lessonRequestBody {
-	messages: any[];
-	language: "Swahili" | "English";
+  messages: any[];
+  language: "Swahili" | "English";
   lessonContext?: {
     title: string;
     emphasisLevel: string;
@@ -134,12 +133,12 @@ interface lessonRequestBody {
 // I will use replace_file_content on the function ONLY.
 
 export async function POST(req: Request) {
-	const body = (await req.json()) as lessonRequestBody;
-	const { messages = [], language = "Swahili", lessonContext, userProfile } = body;
+  const body = (await req.json()) as lessonRequestBody;
+  const { messages = [], language = "Swahili", lessonContext, userProfile } = body;
 
-	// console.log(body.messages);
+  // console.log(body.messages);
 
-	const model = google("gemini-2.5-flash");
+  const model = google("gemini-3-flash-preview");
 
   let systemPrompt = `
 You are an AI assistant for the 'Nuru' programming language (Swahili-based). 
@@ -165,7 +164,7 @@ Emphasis Level: ${lessonContext.emphasisLevel}
 Your goal is to teach this specific lesson.
 1. Start by introducing the concept in Swahili, but keep it simple based on the user's age/level.
 2. Make sure to provide code examples. You can use Markdown code blocks to show code examples.
-3. Ask the user to try writing code.
+3. Ask the user to try writing code. Call the generateExercises tool to generate a coding exercise.
 4. Correct them gently if they make mistakes.
 5. If the lesson is completed, suggest moving to the next one.
 
@@ -175,14 +174,24 @@ Use the following language specification as reference:
 
   systemPrompt += `\n\n${NURU_DOCS}`;
 
-	const result = streamText({
-		model,
-		messages: await convertToModelMessages(messages),
-		system: systemPrompt,
-		output: Output.object({
-			schema: lessonResponseSchema,
-		}),
-	});
+  const result = streamText({
+    model,
+    messages: await convertToModelMessages(messages),
+    system: systemPrompt,
+    output: Output.object({
+      schema: lessonResponseSchema,
+    }),
 
-	return result.toUIMessageStreamResponse();
+    tools: {
+      generateExercises: {
+        description: "Generates a coding exercise for the student. Call this on every new lesson to test the student's understanding.",
+        inputSchema: z.object({
+          initialCode: z.string(),
+          targetOutput: z.string(),
+        }),
+      },
+    },
+  });
+
+  return result.toUIMessageStreamResponse();
 }

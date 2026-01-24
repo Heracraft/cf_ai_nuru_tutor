@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Lesson } from "@/lib/validation";
 import { useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
+import { Playground } from "./playground";
 
 interface LessonViewProps {
 	lesson: {
@@ -38,11 +39,12 @@ export function LessonView({ lesson, userProfile }: LessonViewProps) {
 				userProfile: userProfile,
 			},
 		}),
+		async onToolCall({ toolCall }) {
+			console.log(toolCall);
+		},
 	});
 
 	const [hasStarted, setHasStarted] = useState(false);
-
-	console.log(lesson.order == 1);
 
 	useEffect(() => {
 		if (!hasStarted && messages.length === 0) {
@@ -123,8 +125,16 @@ export function LessonView({ lesson, userProfile }: LessonViewProps) {
 																	}}
 																>
 																	{content.lessonContent}
-																</Markdown>
+																	</Markdown>
 															</>
+														)}
+
+														{content.exercise && (
+															<Playground
+																initialCode={content.exercise.initialCode}
+																targetOutput={content.exercise.targetOutput}
+																
+															/>
 														)}
 													</div>
 												);
