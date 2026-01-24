@@ -6,22 +6,42 @@
 
 ## Assignment Components
 
-This application helps users learn Nuru by leveraging the following Cloudflare components:
-
-- **LLM**: **Google Gemini 2.5 Flash** (via Vercel AI SDK).
+- **LLM**: **Google Gemini 3 Preview** (via Vercel AI SDK).
   - Used for generating lesson plans, explaining code, and providing real-time feedback.
 - **Workflow / Coordination**: **Cloudflare Workflows**.
   - `LessonPlanWorkflow` asynchronously generates structured, multi-step lesson paths to prevent UI blocking during complex generation tasks.
 - **User input**: **Next.js (React) on Cloudflare Pages**.
-  - Provides a rich, interactive UI for chat and potential voice input (future scope) via `shadcn/ui` components.
+  - Provides an interactive UI for chat  via `shadcn/ui` components.
 - **Memory or state**: **Cloudflare D1**.
   - Persists user profiles, lesson progress, and generated curriculum using SQLite.
+
+## Architecture decisions 
+
+### Why OpenNext on Cloudflare?
+
+This project uses `@opennextjs/cloudflare` to deploy Next.js 16. This is so that Next server code has direct access to Cloudflare bindings, eliminating the need to proxy requests. This approach is faster too since the workers running Next and the rest of the bindings are in the same network. Overall, this leads to faster performance.
+
+### Why Gemini over Workers AI
+
+It boils down to deterministic outputs and performance. For the project, I needed to use tools (i.e., function calling) to have the LLM build interactive learning experiences for the user. The output also had to be deterministic so that every feature works perfectly. Models like `@cf/meta/llama-3.1-8b-instruct` struggle with this. On top of that, performance was a bottleneck. I would often get hit with Gateway timeout errors in development. Gemini 3, on the other hand, handles streaming, structured outputs, and function calling with blazing speed.
+
+## Future
+
+I had a lot of fun building this project. I gained a lot of insight into building AI-driven user experiences. I am definitely adding this to my side projects and shipping it in the future. And in service to that future, here are some to-dos.
+
+#### ORM
+
+Our current approach to DB migrations is extremely brittle. The first and only migration I wrote manually in a `.sql` file. Fast, yes, but error-prone. I thought of adding Drizzle to the stack, but it wasn't worth the time. It is the first thing I am adding next time.
+
+#### Internationalization
+
+The app is geared towards Swahili learners, thus a Swahili UI and Swahili lessons from the LLM. What if the user isn't a Swahili speaker, like you, dear reader from the Cloudflare engineering team? I set up rudimentary intl using a queryParam (`?language=en`), but more work is required.
 
 ## Features
 
 - **Personalized Onboarding**: Dynamically assesses user experience (age, prior language knowledge).
 - **Interactive Code Tutor**: Real-time context-aware feedback.
-- **Structured AI Outputs**: Uses JSON schemas for reliable UI rendering.
+- **Structured AI Outputs**: Uses JSON schemas via zod for reliable UI rendering.
 
 ## Getting Started
 
@@ -36,20 +56,19 @@ This application helps users learn Nuru by leveraging the following Cloudflare c
 
 1.  Clone the repository:
 
-    ```bash
-    git clone https://github.com/your-username/cf_ai_nuru_tutor.git
-    cd cf_ai_nuru_tutor
-    ```
+```bash
+git clone https://github.com/Heracraft/cf_ai_nuru_tutor.git
+cd cf_ai_nuru_tutor
+```
 
 2.  Install dependencies:
 
-    ```bash
-    npm install
-    ```
+```bash
+npm install
+```
 
 3.  Configure Environment:
-    Ensure you have your Cloudflare bindings and API keys set up.
-    - `GOOGLE_GENERATIVE_AI_API_KEY`: Set securely via `wrangler secret put` or in `.dev.vars`.
+    - `GOOGLE_GENERATIVE_AI_API_KEY`: Via `wrangler secret put` for production or in `.dev.vars` for local dev.
 
 ### Running Locally
 
@@ -79,21 +98,9 @@ To deploy both the application and the workflows to Cloudflare:
 npm run deploy
 ```
 
-_Note: This runs `opennextjs-cloudflare deploy` for the app. You may need to deploy the workflow worker separately if not configured to deploy together._
-
 ```bash
 npm run deploy:workflows
 ```
-
-## Architecture Notes
-
-### Why OpenNext on Cloudflare?
-
-This project uses `@opennextjs/cloudflare` to deploy Next.js 15 to Cloudflare Workers with `nodejs_compat`. This allows us to use standard React Server Components while maintaining direct access to Cloudflare bindings (D1, Workflows) via the `env` object, without needing to proxy requests through external APIs.
-
-### Workflows for Lesson Generation
-
-Lesson plan generation is computationally expensive and latency-sensitive. By offloading this 'reasoning' step to **Cloudflare Workflows**, we ensure the user interface remains responsive. The workflow asynchronously queries the LLM, parses the structured response, and populates the D1 database with the new curriculum.
 
 ## AI Prompts
 
