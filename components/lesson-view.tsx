@@ -12,6 +12,7 @@ import { Lesson } from "@/lib/validation";
 import { useRouter } from "next/navigation";
 
 import { Playground } from "./playground";
+import { Skeleton } from "@/components/ui/skeleton";
 
 import { ArrowLeft, ArrowRight, Send } from "lucide-react";
 import {
@@ -177,8 +178,15 @@ export function LessonView({ lesson, userProfile }: LessonViewProps) {
 						})}
 					</div>
 				) : (
-					<div className="flex h-full items-center justify-center text-zinc-500">
-						Initializing lesson...
+					<div className="mx-auto flex max-w-4xl flex-col gap-6">
+						<div className="flex flex-col gap-2">
+							<Skeleton className="h-4 w-3/4" />
+							<Skeleton className="h-4 w-1/2" />
+							<Skeleton className="h-4 w-5/6" />
+						</div>
+						<div className="flex flex-col gap-2">
+							<Skeleton className="h-32 w-full rounded-lg" />
+						</div>
 					</div>
 				)}
 			</div>

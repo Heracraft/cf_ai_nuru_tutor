@@ -133,8 +133,15 @@ interface lessonRequestBody {
 // I will use replace_file_content on the function ONLY.
 
 export async function POST(req: Request) {
+  const url = new URL(req.url);
+  const paramLanguage = url.searchParams.get("language");
+
   const body = (await req.json()) as lessonRequestBody;
-  const { messages = [], language = "Swahili", lessonContext, userProfile } = body;
+  let { messages = [], language = "Swahili", lessonContext, userProfile } = body;
+
+  if (paramLanguage?.toLowerCase() === "english") {
+    language = "English";
+  }
 
   // console.log(body.messages);
 
@@ -162,7 +169,7 @@ Current Lesson: ${lessonContext.title}
 Emphasis Level: ${lessonContext.emphasisLevel}
 
 Your goal is to teach this specific lesson.
-1. Start by introducing the concept in Swahili, but keep it simple based on the user's age/level.
+1. Start by introducing the concept in ${language}, but keep it simple based on the user's age/level.
 2. Make sure to provide code examples. You can use Markdown code blocks to show code examples.
 3. Ask the user to try writing code. Call the generateExercises tool to generate a coding exercise.
 4. Correct them gently if they make mistakes.
@@ -182,15 +189,15 @@ Use the following language specification as reference:
       schema: lessonResponseSchema,
     }),
 
-    // tools: {
-    //   generateExercises: {
-    //     description: "Generates a coding exercise for the student. Call this on every new lesson to test the student's understanding.",
-    //     inputSchema: z.object({
-    //       initialCode: z.string(),
-    //       targetOutput: z.string(),
-    //     }),
-    //   },
-    // },
+    tools: {
+      generateExercises: {
+        description: "Generates a coding exercise for the student. Call this on every new lesson to test the student's understanding.",
+        inputSchema: z.object({
+          initialCode: z.string(),
+          targetOutput: z.string(),
+        }),
+      },
+    },
   });
 
   return result.toUIMessageStreamResponse();

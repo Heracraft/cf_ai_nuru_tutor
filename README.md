@@ -1,23 +1,27 @@
 # cf_ai_nuru_tutor
 
-An AI-powered programming tutor for **Nuru** (a Swahili-based programming language). This application personalizes learning paths for students based on their experience level and age, generating custom lesson plans and interactive coding exercises.
+**Submission for Cloudflare AI App Optional Assignment**
+
+**Nuru Tutor** is an AI-powered programming tutor for **Nuru** (a Swahili-based programming language). This application personalizes learning paths for students based on their experience level and age, generating custom lesson plans and interactive coding exercises.
+
+## Assignment Components
+
+This application helps users learn Nuru by leveraging the following Cloudflare components:
+
+- **LLM**: **Google Gemini 2.5 Flash** (via Vercel AI SDK).
+  - Used for generating lesson plans, explaining code, and providing real-time feedback.
+- **Workflow / Coordination**: **Cloudflare Workflows**.
+  - `LessonPlanWorkflow` asynchronously generates structured, multi-step lesson paths to prevent UI blocking during complex generation tasks.
+- **User input**: **Next.js (React) on Cloudflare Pages**.
+  - Provides a rich, interactive UI for chat and potential voice input (future scope) via `shadcn/ui` components.
+- **Memory or state**: **Cloudflare D1**.
+  - Persists user profiles, lesson progress, and generated curriculum using SQLite.
 
 ## Features
 
-- **Personalized Onboarding**: Dynamically assesses user experience (age, prior language knowledge) to tailor the curriculum.
-- **AI-Generated Lesson Plans**: Utilizes **Cloudflare Workflows** to asynchronously generate structured, multi-step lesson paths.
-- **Interactive Code Tutor**: Provides real-time, context-aware code explanations and examples using **Google Gemini 2.5 Flash**.
-- **Progress Persistence**: Tracks completed lessons and user state using **Cloudflare D1** (SQLite).
-- **Structured AI Outputs**: Leveraging JSON schemas to strictly separate educational text from code examples for a robust UI experience.
-
-## Technology Stack
-
-- **Framework**: [Next.js 15](https://nextjs.org/) (App Router)
-- **Runtime**: Cloudflare Workers (via [OpenNext](https://opennext.js.org/cloudflare))
-- **AI Model**: Google Gemini 2.5 Flash (via Vercel AI SDK)
-- **Database**: Cloudflare D1
-- **Orchestration**: Cloudflare Workflows
-- **Styling**: Tailwind CSS + Shadcn UI
+- **Personalized Onboarding**: Dynamically assesses user experience (age, prior language knowledge).
+- **Interactive Code Tutor**: Real-time context-aware feedback.
+- **Structured AI Outputs**: Uses JSON schemas for reliable UI rendering.
 
 ## Getting Started
 

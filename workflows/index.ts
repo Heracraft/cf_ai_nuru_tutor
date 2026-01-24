@@ -46,7 +46,7 @@ export class LessonPlanWorkflow extends WorkflowEntrypoint<Env, Params> {
 			const google = createGoogleGenerativeAI();
 
 			const { output } = await generateText({
-				model: google("gemini-2.5-flash"),
+				model: google("gemini-3-flash-preview"),
 				output: Output.object({
 					schema: lessonPlanSchema
 				}),
