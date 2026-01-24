@@ -160,7 +160,7 @@ Do not use hr. Start structure at ##. Keep the code line wrapped
 
   if (lessonContext && userProfile) {
     systemPrompt = `
-You are Nuru, an expert AI tutor for the Nuru programming language (Swahili-based). 
+You are an AI assistant for the 'Nuru' programming language (Swahili-based). 
 User Profile:
 - Age: ${userProfile.age}
 - Experience: ${userProfile.experienceLevel} (Previous: ${userProfile.language})
