@@ -47,7 +47,10 @@
 			"main": "workflows/index.ts",
 			"compatibility_date": "2025-09-27",
 			"observability": {
-				"enabled": true,
+				"logs": {
+					"enabled": true,
+					"invocation_logs": true,
+				},
 			},
 			"workflows": [
 				{
@@ -67,6 +70,7 @@
 					"remote": true,
 				},
 			],
+			
 		},
 	},
 }
