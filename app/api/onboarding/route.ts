@@ -5,8 +5,8 @@ export const runtime = "edge";
 
 export async function POST(req: NextRequest) {
   try {
-    const { age, language, experienceLevel } = await req.json() as { age: string, language: string, experienceLevel: string };
-    const { env } = await getCloudflareContext({async:true});
+    const { age, language, experienceLevel, targetLanguage } = await req.json() as { age: string, language: string, experienceLevel: string, targetLanguage?: string };
+    const { env } = await getCloudflareContext({ async: true });
     const userId = crypto.randomUUID();
 
     // Create User
@@ -16,9 +16,13 @@ export async function POST(req: NextRequest) {
 
     // Trigger Workflow via Service Binding
     // Service Binding 'fetch' expects a full URL passed, but for Service Bindings the hostname is ignored.
+    if (!env.WORKFLOWS_SERVICE) {
+      throw new Error("WORKFLOWS_SERVICE is not defined");
+    }
+
     const workflowResponse = await env.WORKFLOWS_SERVICE.fetch("http://workflows/", {
       method: "POST",
-      body: JSON.stringify({ userId, age, language, experienceLevel }),
+      body: JSON.stringify({ userId, age, language, experienceLevel, targetLanguage }),
     });
 
     if (!workflowResponse.ok) {

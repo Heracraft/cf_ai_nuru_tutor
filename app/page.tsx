@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,14 +21,19 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 
-export default function OnboardingPage() {
+function OnboardingContent() {
 	const router = useRouter();
+	const searchParams = useSearchParams();
 	const [isLoading, setIsLoading] = useState(false);
 	const [formData, setFormData] = useState({
 		age: "",
 		language: "",
 		experienceLevel: "",
 	});
+
+	const isEnglish =
+		searchParams.get("language")?.toLowerCase() === "en" ||
+		searchParams.get("language")?.toLowerCase() === "english";
 
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
@@ -40,19 +45,24 @@ export default function OnboardingPage() {
 				headers: {
 					"Content-Type": "application/json",
 				},
-				body: JSON.stringify(formData),
+				body: JSON.stringify({
+					...formData,
+					targetLanguage: isEnglish ? "English" : "Swahili",
+				}),
 			});
 
 			if (!response.ok) {
 				throw new Error("Failed to start journey");
 			}
 
-			const data = await response.json() as { userId: string };
-			
-      if (data.userId) {
-        localStorage.setItem("nuru_userId", data.userId);
-        router.push(`/dashboard?userId=${data.userId}`);
-      }
+			const data = (await response.json()) as { userId: string };
+
+			if (data.userId) {
+				localStorage.setItem("nuru_userId", data.userId);
+				const langParam = searchParams.get("language");
+				const query = langParam ? `&language=${langParam}` : "";
+				router.push(`/dashboard?userId=${data.userId}${query}`);
+			}
 		} catch (error) {
 			console.error("Error:", error);
 			// Ideally show toast error here
@@ -62,20 +72,22 @@ export default function OnboardingPage() {
 	};
 
 	return (
-		<div className="flex-1 flex items-center justify-center bg-zinc-950 p-4">
-			<Card className="flex-1 max-w-md border-zinc-800 bg-zinc-900 text-zinc-100">
+		<div className="flex flex-1 items-center justify-center bg-zinc-950 p-4">
+			<Card className="max-w-md flex-1 border-zinc-800 bg-zinc-900 text-zinc-100">
 				<CardHeader>
 					<CardTitle className="text-2xl font-bold text-emerald-500">
-						Karibu Nuru Tutor
+						{isEnglish ? "Welcome to Nuru Tutor" : "Karibu Nuru Tutor"}
 					</CardTitle>
 					<CardDescription className="text-zinc-400">
-						To personalize your learning path, tell us a bit about yourself.
+						{isEnglish
+							? "To personalize your learning path, tell us a bit about yourself."
+							: "To personalize your learning path, tell us a bit about yourself."}
 					</CardDescription>
 				</CardHeader>
 				<form onSubmit={handleSubmit}>
 					<CardContent className="space-y-4">
 						<div className="space-y-2">
-							<Label htmlFor="age">Umri</Label>
+							<Label htmlFor="age">{isEnglish ? "Age" : "Umri"}</Label>
 							<Input
 								id="age"
 								type="number"
@@ -90,7 +102,9 @@ export default function OnboardingPage() {
 						</div>
 
 						<div className="space-y-2">
-							<Label htmlFor="language">Lugha ulizotumia kabla</Label>
+							<Label htmlFor="language">
+								{isEnglish ? "Previous Languages" : "Lugha ulizotumia kabla"}
+							</Label>
 							<Input
 								id="language"
 								placeholder="e.g. Python, JavaScript, None"
@@ -104,7 +118,9 @@ export default function OnboardingPage() {
 						</div>
 
 						<div className="space-y-2">
-							<Label htmlFor="experience">Uzoefu</Label>
+							<Label htmlFor="experience">
+								{isEnglish ? "Experience" : "Uzoefu"}
+							</Label>
 							<Select
 								value={formData.experienceLevel}
 								onValueChange={(value) =>
@@ -126,7 +142,7 @@ export default function OnboardingPage() {
 					<CardFooter>
 						<Button
 							type="submit"
-							className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
+							className="w-full bg-emerald-600 text-white hover:bg-emerald-700"
 							disabled={isLoading}
 						>
 							{isLoading ? "Generating Plan..." : "Start Learning Path"}
@@ -135,5 +151,19 @@ export default function OnboardingPage() {
 				</form>
 			</Card>
 		</div>
+	);
+}
+
+export default function OnboardingPage() {
+	return (
+		<Suspense
+			fallback={
+				<div className="flex flex-1 items-center justify-center bg-zinc-950 p-4 text-white">
+					Loading...
+				</div>
+			}
+		>
+			<OnboardingContent />
+		</Suspense>
 	);
 }

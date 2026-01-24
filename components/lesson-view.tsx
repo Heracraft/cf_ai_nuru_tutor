@@ -40,15 +40,18 @@ interface LessonViewProps {
 
 export function LessonView({ lesson, userProfile }: LessonViewProps) {
 	const router = useRouter();
+	const isEnglish = userProfile.language?.toLowerCase() === "english";
+
 	const { messages, sendMessage } = useChat({
 		transport: new DefaultChatTransport({
 			body: {
-				lessonContext: {
-					title: lesson.title,
-					emphasisLevel: lesson.emphasisLevel,
-				},
-				userProfile: userProfile,
+			language: isEnglish ? "English" : "Swahili",
+			lessonContext: {
+				title: lesson.title,
+				emphasisLevel: lesson.emphasisLevel,
 			},
+			userProfile: userProfile,
+		},
 		}),
 		async onToolCall({ toolCall }) {
 			console.log(toolCall);
@@ -161,6 +164,7 @@ export function LessonView({ lesson, userProfile }: LessonViewProps) {
 																	title: lesson.title,
 																	emphasisLevel: lesson.emphasisLevel,
 																}}
+																language={isEnglish ? "English" : "Swahili"}
 															/>
 														)}
 													</div>
@@ -171,10 +175,7 @@ export function LessonView({ lesson, userProfile }: LessonViewProps) {
 									</div>
 								);
 							}
-							return null; // Don't show user "Start teaching..." command usually, or show it as user bubble?
-							// The original Page.tsx didn't show user messages in the mapped output for some reason?
-							// Line 53 in original: if (message.role != "user" && ...)
-							// So it filtered out user messages. I'll stick to that behavior.
+							return null;
 						})}
 					</div>
 				) : (
@@ -196,7 +197,11 @@ export function LessonView({ lesson, userProfile }: LessonViewProps) {
 					<InputGroup className="border-zinc-700 bg-zinc-800">
 						<InputGroupInput
 							name="message"
-							placeholder="Uliza swali au omba msaada..."
+							placeholder={
+								isEnglish
+									? "Ask a question or request help..."
+									: "Uliza swali au omba msaada..."
+							}
 							className="text-zinc-100 placeholder:text-zinc-500"
 							onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
 								if (e.key === "Enter") {
@@ -225,10 +230,16 @@ export function LessonView({ lesson, userProfile }: LessonViewProps) {
 						</InputGroupAddon>
 					</InputGroup>
 					<Button
-						onClick={() => sendMessage({ text: "Next lesson please" })}
+						onClick={() =>
+							sendMessage({
+								text: isEnglish ? "Next lesson please" : "Next lesson please",
+							})
+						} // Keep standard command for AI or translate? AI understands both usually, but let's send English if preferred.
+						// Actually, AI prompt instructions are in English now if language is English, so sending "Next lesson please" is fine.
 						className="gap-2"
 					>
-						Endelea <ArrowRight className="h-4 w-4" />
+						{isEnglish ? "Continue" : "Endelea"}{" "}
+						<ArrowRight className="h-4 w-4" />
 					</Button>
 				</div>
 			</div>

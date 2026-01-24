@@ -6,10 +6,12 @@ export const runtime = "edge";
 
 interface PageProps {
 	params: Promise<{ id: string }>;
+	searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }
 
-export default async function LessonPage({ params }: PageProps) {
+export default async function LessonPage({ params, searchParams }: PageProps) {
 	const { id } = await params;
+	const { language: langParam } = await searchParams;
 	const { env } = await getCloudflareContext({ async: true });
 
 	// Fetch lesson
@@ -44,6 +46,12 @@ export default async function LessonPage({ params }: PageProps) {
 		return <div className="p-10 text-white">User profile not found</div>;
 	}
 
+	const languageOverride =
+		typeof langParam === "string" &&
+		(langParam.toLowerCase() === "en" || langParam.toLowerCase() === "english")
+			? "English"
+			: user.language;
+
 	return (
 		<LessonView
 			lesson={{
@@ -54,7 +62,7 @@ export default async function LessonPage({ params }: PageProps) {
 			}}
 			userProfile={{
 				age: String(user.age),
-				language: user.language,
+				language: languageOverride,
 				experienceLevel: user.experience_level,
 			}}
 		/>

@@ -18,6 +18,7 @@ type Params = {
 	age: string;
 	language: string;
 	experienceLevel: string;
+	targetLanguage?: string;
 };
 
 type Lesson = {
@@ -30,7 +31,7 @@ type Lesson = {
 
 export class LessonPlanWorkflow extends WorkflowEntrypoint<Env, Params> {
 	async run(event: WorkflowEvent<Params>, step: WorkflowStep) {
-		const { userId, age, language, experienceLevel } = event.payload;
+		const { userId, age, language, experienceLevel, targetLanguage = "Swahili" } = event.payload;
 
 		const generatedLessons = await step.do("generate lesson plan", async () => {
 			const prompt = `
@@ -40,7 +41,8 @@ export class LessonPlanWorkflow extends WorkflowEntrypoint<Env, Params> {
         - Experience Level: ${experienceLevel}
         
         Generate a list of 5 lessons.
-        The lesson titles must be in Swahili.
+        The lesson titles must be in ${targetLanguage}.
+        Instructions are to be given in ${targetLanguage}.
       `;
 
 			const google = createGoogleGenerativeAI();

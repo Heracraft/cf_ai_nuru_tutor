@@ -14,10 +14,17 @@ interface HelpRequestBody {
 }
 
 export async function POST(req: Request) {
-    const body = (await req.json()) as HelpRequestBody;
-    const { code, output, lessonContext, language = "Swahili" } = body;
+    const url = new URL(req.url);
+    const paramLanguage = url.searchParams.get("language");
 
-    const selectedModel = google("gemini-3-flash-preview"); 
+    const body = (await req.json()) as HelpRequestBody;
+    let { code, output, lessonContext, language = "Swahili" } = body;
+
+    if (paramLanguage?.toLowerCase() === "english" || paramLanguage?.toLowerCase() === "en") {
+        language = "English";
+    }
+
+    const selectedModel = google("gemini-3-flash-preview");
 
     const systemPrompt = `
 You are a helpful AI tutor for the Nuru programming language (Swahili-based).
@@ -50,7 +57,7 @@ Output/Logs:
 ${output}
   `;
 
-    const {output:result} =await generateText({
+    const { output: result } = await generateText({
         model: selectedModel,
         messages: [
             { role: "system", content: systemPrompt },

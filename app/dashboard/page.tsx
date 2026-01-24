@@ -15,10 +15,10 @@ import { CheckCircle2, Circle } from "lucide-react";
 export const runtime = "edge";
 
 export default async function DashboardPage(props: {
-	searchParams: Promise<{ userId?: string }>;
+	searchParams: Promise<{ userId?: string; language?: string }>;
 }) {
 	const searchParams = await props.searchParams;
-	const { userId } = searchParams;
+	const { userId, language } = searchParams;
 
 	if (!userId) {
 		return <DashboardRedirector />;
@@ -74,7 +74,10 @@ export default async function DashboardPage(props: {
 				) : (
 					<div className="grid gap-4">
 						{lessons.map((lesson: any) => (
-							<Link key={lesson.id} href={`/lesson/${lesson.id}`}>
+							<Link
+								key={lesson.id}
+								href={`/lesson/${lesson.id}${language ? `?language=${language}` : ""}`}
+							>
 								<Card
 									className={`border-zinc-800 bg-zinc-900 transition-colors hover:border-emerald-500/50 ${lesson.completed ? "border-emerald-900/50 bg-emerald-950/10" : ""}`}
 								>

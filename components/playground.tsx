@@ -25,7 +25,7 @@ import { cn } from "@/lib/utils";
 import { PlaygroundProps, LanguageExecutor, logEntry } from "@/types";
 
 import { useRef, useEffect } from "react";
-import { HelpResponse,  } from "@/lib/validation";
+import { HelpResponse } from "@/lib/validation";
 
 export function Playground({
 	initialCode,
@@ -33,6 +33,7 @@ export function Playground({
 	className,
 	onRun,
 	lessonContext,
+	language,
 }: PlaygroundProps) {
 	const [code, setCode] = useState(initialCode);
 	const [logs, setLogs] = useState<logEntry[]>([]);
@@ -49,10 +50,15 @@ export function Playground({
 		setIsHelpLoading(true);
 		const res = await fetch("/api/help", {
 			method: "POST",
-			body: JSON.stringify({ code, output: logs.map((l) => l.content).join("\n"), lessonContext }),
+			body: JSON.stringify({
+				code,
+				output: logs.map((l) => l.content).join("\n"),
+				lessonContext,
+				language,
+			}),
 		});
 
-		const data = await res.json() as HelpResponse;
+		const data = (await res.json()) as HelpResponse;
 
 		setCode(data.code);
 		// setLogs((prev) => [...prev, { content: data.explanation, isError: false }]);

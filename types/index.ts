@@ -18,6 +18,7 @@ export interface PlaygroundProps {
     title: string;
     emphasisLevel: string;
   };
+  language?: string;
 }
 
 export type logEntry = { content: string, isError: boolean }
