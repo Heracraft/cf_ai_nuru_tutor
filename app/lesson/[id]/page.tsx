@@ -37,6 +37,7 @@ export default async function LessonPage({ params }: PageProps) {
         id: lesson.id,
         title: lesson.title,
         emphasisLevel: lesson.emphasis_level,
+        order: lesson.order
       }}
       userProfile={{
         age: String(user.age),

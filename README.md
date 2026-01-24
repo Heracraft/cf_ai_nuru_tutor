@@ -1,77 +1,96 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# cf_ai_nuru_tutor
+
+An AI-powered programming tutor for **Nuru** (a Swahili-based programming language). This application personalizes learning paths for students based on their experience level and age, generating custom lesson plans and interactive coding exercises.
+
+## Features
+
+- **Personalized Onboarding**: Dynamically assesses user experience (age, prior language knowledge) to tailor the curriculum.
+- **AI-Generated Lesson Plans**: Utilizes **Cloudflare Workflows** to asynchronously generate structured, multi-step lesson paths.
+- **Interactive Code Tutor**: Provides real-time, context-aware code explanations and examples using **Google Gemini 2.5 Flash**.
+- **Progress Persistence**: Tracks completed lessons and user state using **Cloudflare D1** (SQLite).
+- **Structured AI Outputs**: Leveraging JSON schemas to strictly separate educational text from code examples for a robust UI experience.
+
+## Technology Stack
+
+- **Framework**: [Next.js 15](https://nextjs.org/) (App Router)
+- **Runtime**: Cloudflare Workers (via [OpenNext](https://opennext.js.org/cloudflare))
+- **AI Model**: Google Gemini 2.5 Flash (via Vercel AI SDK)
+- **Database**: Cloudflare D1
+- **Orchestration**: Cloudflare Workflows
+- **Styling**: Tailwind CSS + Shadcn UI
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
+
+- Node.js (v20+)
+- Cloudflare Account
+- `wrangler` CLI installed globally (`npm i -g wrangler`)
+- Google AI API Key (for Gemini)
+
+### Installation
+
+1.  Clone the repository:
+
+    ```bash
+    git clone https://github.com/your-username/cf_ai_nuru_tutor.git
+    cd cf_ai_nuru_tutor
+    ```
+
+2.  Install dependencies:
+
+    ```bash
+    npm install
+    ```
+
+3.  Configure Environment:
+    Ensure you have your Cloudflare bindings and API keys set up.
+    - `GOOGLE_GENERATIVE_AI_API_KEY`: Set securely via `wrangler secret put` or in `.dev.vars`.
+
+### Running Locally
+
+This project operates with two coordinated services: the Next.js frontend (Worker) and the independent Workflow Worker.
+
+1.  **Frontend & API (Next.js)**
+    Start the main application server:
+
+    ```bash
+    npm run dev
+    ```
+
+    _Access the app at `http://localhost:3000`_
+
+2.  **Workflows Worker**
+    In a separate terminal, start the background workflow service:
+    ```bash
+    npm run dev:workflows
+    ```
+    _This handles the asynchronous generation of lesson plans._
+
+### Cloudflare Deployment
+
+To deploy both the application and the workflows to Cloudflare:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm run deploy
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+_Note: This runs `opennextjs-cloudflare deploy` for the app. You may need to deploy the workflow worker separately if not configured to deploy together._
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+npm run deploy:workflows
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Architecture Notes
 
-## Learn More
+### Why OpenNext on Cloudflare?
 
-To learn more about Next.js, take a look at the following resources:
+This project uses `@opennextjs/cloudflare` to deploy Next.js 15 to Cloudflare Workers with `nodejs_compat`. This allows us to use standard React Server Components while maintaining direct access to Cloudflare bindings (D1, Workflows) via the `env` object, without needing to proxy requests through external APIs.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Workflows for Lesson Generation
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Lesson plan generation is computationally expensive and latency-sensitive. By offloading this 'reasoning' step to **Cloudflare Workflows**, we ensure the user interface remains responsive. The workflow asynchronously queries the LLM, parses the structured response, and populates the D1 database with the new curriculum.
 
-## Deploy on Vercel
+## AI Prompts
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
-
-
-## Architecture Journey
-
-This project was built as a Cloudflare-native application to explore the intersection of modern meta-frameworks (Next.js) and Edge computing. Below are the key architectural pivots made during development.
-
-### 1. Runtime Pivot: Vanilla Node.js &rarr; OpenNext on Cloudflare Workers
-**Context:**  
-Next.js typically runs on a Node.js server (or Vercel's managed infrastructure). However, the assignment required a "Cloudflare-native" approach.
-
-**The Pivot:**  
-I migrated from the standard Next.js runtime to **@opennextjs/cloudflare**.
-
-**Reasoning:**
-- **Alignment:** This fulfills the requirement to build on Cloudflare Workers/Pages while retaining the developer experience of Next.js App Router.
-- **Integration:** Running directly on the specific `nodejs_compat` compatibility flag in `wrangler.jsonc` allows direct binding access to `env.AI` (Workers AI) without needing complex REST API bridges or external secrets management.
-- **Trade-offs:** We lose some Node.js specific APIs but gain significant improvements in cold-boot times and edge latency.
-
-### 2. Interaction Model: Text Streaming &rarr; Structured JSON
-**Context:**  
-An educational tutor needs to distinctively separate "Concept Explanations" from "Code Examples" to render them in different UI components (Markdown viewer vs. Code Editor).
-
-**The Pivot:**  
-I moved from `generateText` with streaming to `generateText` with `json-mode` (Zod Schema).
-
-**Reasoning:**
-- **Reliability:** Llama 3 provides excellent reasoning, but parsing unstructured text streams into specific UI components is fragile.
-- **Constraint:** As noted in development, the Vercel AI SDK currently does not support `stream: true` simultaneously with `json` mode for all providers.
-- **Decision:** I prioritized structural integrity over the "typing effect" UI. The app now waits for a complete, valid JSON object containing `{ lessonContent, sampleCode }` before rendering, ensuring the Code Editor never receives malformed text.
-
-### 3. AI Model Strategy
-**Choice:** Llama 3 (via Workers AI)
-**Why:**  
-- **Latency:** Running the model on Cloudflare's global network reduces the round-trip time compared to calling an external API (like OpenAI).
-- **Privacy/Security:** The request never leaves the Cloudflare ecosystem.
-
-## Stack Overview
-- **Framework:** Next.js 15 (App Router)
-- **Runtime:** Cloudflare Workers (via OpenNext)
-- **AI:** Workers AI (@cf/meta/llama-3-8b-instruct)
-- **Styling:** Tailwind CSS + Shadcn UI
+A record of the AI prompts used to assist in building this project can be found in [PROMPTS.md](./PROMPTS.md).

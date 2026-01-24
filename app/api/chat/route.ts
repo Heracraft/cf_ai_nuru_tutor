@@ -164,7 +164,7 @@ Emphasis Level: ${lessonContext.emphasisLevel}
 
 Your goal is to teach this specific lesson.
 1. Start by introducing the concept in Swahili, but keep it simple based on the user's age/level.
-2. Provide a code example using \`andika()\` or other Nuru commands.
+2. Make sure to provide code examples. You can use Markdown code blocks to show code examples.
 3. Ask the user to try writing code.
 4. Correct them gently if they make mistakes.
 5. If the lesson is completed, suggest moving to the next one.
