@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef } from "react";
 import { DefaultChatTransport } from "ai";
 import { useChat } from "@ai-sdk/react";
 import Markdown from "react-markdown";
@@ -45,29 +45,29 @@ export function LessonView({ lesson, userProfile }: LessonViewProps) {
 	const { messages, sendMessage } = useChat({
 		transport: new DefaultChatTransport({
 			body: {
-			language: isEnglish ? "English" : "Swahili",
-			lessonContext: {
-				title: lesson.title,
-				emphasisLevel: lesson.emphasisLevel,
+				language: isEnglish ? "English" : "Swahili",
+				lessonContext: {
+					title: lesson.title,
+					emphasisLevel: lesson.emphasisLevel,
+				},
+				userProfile: userProfile,
 			},
-			userProfile: userProfile,
-		},
 		}),
 		async onToolCall({ toolCall }) {
 			console.log(toolCall);
 		},
 	});
 
-	const [hasStarted, setHasStarted] = useState(false);
+	const hasStartedRef = useRef(false);
 
 	useEffect(() => {
-		if (!hasStarted && messages.length === 0) {
-			setHasStarted(true);
+		if (!hasStartedRef.current && messages.length === 0) {
+			hasStartedRef.current = true;
 			sendMessage({
 				text: `Start teaching me the lesson: ${lesson.title}`,
 			});
 		}
-	}, [hasStarted, messages.length, sendMessage, lesson.title]);
+	}, [messages.length, sendMessage, lesson.title]);
 
 	return (
 		<div className="flex h-screen flex-col bg-zinc-950">
