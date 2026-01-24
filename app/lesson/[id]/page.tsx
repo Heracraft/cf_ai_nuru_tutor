@@ -2,8 +2,6 @@ import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { LessonView } from "@/components/lesson-view";
 import { redirect } from "next/navigation";
 
-export const runtime = "edge";
-
 interface PageProps {
 	params: Promise<{ id: string }>;
 	searchParams: Promise<{ [key: string]: string | string[] | undefined }>;

@@ -12,8 +12,6 @@ import {
 import Link from "next/link";
 import { CheckCircle2, Circle } from "lucide-react";
 
-export const runtime = "edge";
-
 export default async function DashboardPage(props: {
 	searchParams: Promise<{ userId?: string; language?: string }>;
 }) {
