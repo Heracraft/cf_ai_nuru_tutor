@@ -32,10 +32,10 @@ export default function RootLayout({
 			<body
 				className={cn(
 					notoSans.variable,
-					"dark flex h-dvh justify-center antialiased",
+					"dark flex flex-col h-dvh items-center antialiased",
 				)}
 			>
-				<main className="min-h-full flex-1 py-20 lg:max-w-2/3 xl:max-w-[60%]">
+				<main className="flex flex-col flex-1 w-full">
 					{children}
 				</main>
 			</body>

@@ -4,10 +4,13 @@
 	"private": true,
 	"scripts": {
 		"dev": "next dev",
+		"dev:wrangler": "npx wrangler dev --remote",
+		"dev:workflows": "wrangler dev -e workflows",
 		"build": "next build",
 		"start": "next start",
 		"preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
 		"deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
+		"deploy:workflows": "wrangler deploy -e workflows",
 		"cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts",
 		"lint": "eslint"
 	},
@@ -52,6 +55,6 @@
 		"tailwind-scrollbar": "^4.0.2",
 		"tailwindcss": "^4",
 		"typescript": "^5",
-		"wrangler": "^4.59.2"
+		"wrangler": "^4.60.0"
 	}
 }

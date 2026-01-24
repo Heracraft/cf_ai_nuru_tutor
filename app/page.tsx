@@ -1,155 +1,139 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { z } from "zod";
-
-import { useChat } from "@ai-sdk/react";
-import Markdown from "react-markdown";
-import { parse } from "best-effort-json-parser";
-
-import { Playground } from "@/components/playground";
-import { CodeEditor } from "@/components/codeEditor";
-
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
+import {
+	Card,
+	CardContent,
+	CardDescription,
+	CardFooter,
+	CardHeader,
+	CardTitle,
+} from "@/components/ui/card";
 
-import { Lesson } from "@/lib/validation";
+export default function OnboardingPage() {
+	const router = useRouter();
+	const [isLoading, setIsLoading] = useState(false);
+	const [formData, setFormData] = useState({
+		age: "",
+		language: "",
+		experienceLevel: "",
+	});
 
-import { LanguageExecutor } from "@/types";
+	const handleSubmit = async (e: React.FormEvent) => {
+		e.preventDefault();
+		setIsLoading(true);
 
-const responseSchema = z.object({
-	lesson: z.string(),
-	sampleCode: z.string(),
-});
-
-export default function Page() {
-	// const [lessons, setLessons] = useState(0);
-
-	const { messages, sendMessage } = useChat();
-	const [currentLessonIndex, setCurrentLessonIndex] = useState(1);
-
-	useEffect(() => {
-		if (messages.length === 0) {
-			sendMessage({
-				text: "Start lesson",
+		try {
+			const response = await fetch("/api/onboarding", {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify(formData),
 			});
+
+			if (!response.ok) {
+				throw new Error("Failed to start journey");
+			}
+
+			const data = await response.json() as { userId: string };
+			
+      if (data.userId) {
+        localStorage.setItem("nuru_userId", data.userId);
+        router.push(`/dashboard?userId=${data.userId}`);
+      }
+		} catch (error) {
+			console.error("Error:", error);
+			// Ideally show toast error here
+		} finally {
+			setIsLoading(false);
 		}
-	}, []);
-
-	// useEffect(() => {
-	// 	const updatedLessons=messages.map((message) => {
-	// 		if (message.role != "user") {
-	// 			return message;
-	// 		}
-	// 	});
-
-	// 	setLessons(updatedLessons)
-	// }, [messages]);
+	};
 
 	return (
-		<div className="min-h-full flex flex-1 flex-col gap-4 border border-dashed bg-zinc-900 p-10	">
-			{messages.length > 0 ? (
-				<div className="flex-1 flex flex-col">
-					{messages.map((message, index) => {
-						if (message.role != "user" && currentLessonIndex == index) {
-							return (
-								<div key={message.id} className="whitespace-pre-wrap">
-									{message.parts.map((part, i) => {
-										switch (part.type) {
-											case "text":
-												const content =
-													(parse(part.text) as Partial<Lesson>) || "";
-												console.log(content);
-												return (
-													<div
-														key={`${message.id}-${i}`}
-														className="prose-zinc prose-p:my-0 prose-li:my-0 prose-headings:mb-0 prose-headings:mt-0 dark:prose-invert prose-base"
-													>
-														{content.lessonContent && (
-															<Markdown
-																components={{
-																	code(props) {
-																		const {
-																			children,
-																			className,
-																			node,
-																			...rest
-																		} = props;
-																		const match = /language-(\w+)/.exec(
-																			className || "",
-																		);
-																		return match ? (
-																			<div className="not-prose my-2 overflow-hidden rounded-md border border-zinc-200 dark:border-zinc-800">
-																				<CodeEditor
-																					code={String(children).replace(
-																						/\n$/,
-																						"",
-																					)}
-																					readOnly
-																				/>
-																			</div>
-																		) : (
-																			<code
-																				className="rounded-md bg-zinc-200 px-1.5 py-0.5 font-mono text-sm text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100"
-																				{...rest}
-																			>
-																				{children}
-																			</code>
-																		);
-																	},
-																	pre(props) {
-																		return (
-																			<div className="not-prose">
-																				{props.children}
-																			</div>
-																		);
-																	},
-																}}
-															>
-																{content.lessonContent}
-															</Markdown>
-														)}
-													</div>
-												);
-										}
-									})}
-								</div>
-							);
-						}
-					})}
-				</div>
-			) : (
-				<p>empty for now</p>
-			)}
+		<div className="flex-1 flex items-center justify-center bg-zinc-950 p-4">
+			<Card className="flex-1 max-w-md border-zinc-800 bg-zinc-900 text-zinc-100">
+				<CardHeader>
+					<CardTitle className="text-2xl font-bold text-emerald-500">
+						Karibu Nuru Tutor
+					</CardTitle>
+					<CardDescription className="text-zinc-400">
+						To personalize your learning path, tell us a bit about yourself.
+					</CardDescription>
+				</CardHeader>
+				<form onSubmit={handleSubmit}>
+					<CardContent className="space-y-4">
+						<div className="space-y-2">
+							<Label htmlFor="age">Umri</Label>
+							<Input
+								id="age"
+								type="number"
+								placeholder="e.g. 15"
+								required
+								className="border-zinc-700 bg-zinc-800 text-zinc-100 placeholder:text-zinc-500"
+								value={formData.age}
+								onChange={(e) =>
+									setFormData({ ...formData, age: e.target.value })
+								}
+							/>
+						</div>
 
-			{/* <Playground
-				initialCode="andika('Hi cloudflare team')"
-				//  executor={nuruExecutor}
-			/> */}
+						<div className="space-y-2">
+							<Label htmlFor="language">Lugha ulizotumia kabla</Label>
+							<Input
+								id="language"
+								placeholder="e.g. Python, JavaScript, None"
+								required
+								className="border-zinc-700 bg-zinc-800 text-zinc-100 placeholder:text-zinc-500"
+								value={formData.language}
+								onChange={(e) =>
+									setFormData({ ...formData, language: e.target.value })
+								}
+							/>
+						</div>
 
-			<div className="flex justify-end gap-4">
-				<Button
-					size={"lg"}
-					variant={"outline"}
-					disabled={currentLessonIndex == 1}
-					onClick={() => {
-						setCurrentLessonIndex((oldIndex) => (oldIndex -= 2));
-					}}
-				>
-					Previous Lesson
-				</Button>
-				<Button
-					size={"lg"}
-					className="text-white"
-					onClick={() => {
-						sendMessage({
-							text: "next lesson please",
-						});
-						setCurrentLessonIndex((oldIndex) => (oldIndex += 2));
-					}}
-				>
-					Next lesson
-				</Button>
-			</div>
+						<div className="space-y-2">
+							<Label htmlFor="experience">Uzoefu</Label>
+							<Select
+								value={formData.experienceLevel}
+								onValueChange={(value) =>
+									setFormData({ ...formData, experienceLevel: value })
+								}
+								required
+							>
+								<SelectTrigger className="border-zinc-700 bg-zinc-800 text-zinc-100">
+									<SelectValue placeholder="Select your level" />
+								</SelectTrigger>
+								<SelectContent className="border-zinc-700 bg-zinc-800 text-zinc-100">
+									<SelectItem value="beginner">Beginner</SelectItem>
+									<SelectItem value="intermediate">Intermediate</SelectItem>
+									<SelectItem value="advanced">Advanced</SelectItem>
+								</SelectContent>
+							</Select>
+						</div>
+					</CardContent>
+					<CardFooter>
+						<Button
+							type="submit"
+							className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
+							disabled={isLoading}
+						>
+							{isLoading ? "Generating Plan..." : "Start Learning Path"}
+						</Button>
+					</CardFooter>
+				</form>
+			</Card>
 		</div>
 	);
 }

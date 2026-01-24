@@ -8,3 +8,13 @@ export const lessonResponseSchema = z.object({
 });
 
 export type Lesson = z.infer<typeof lessonResponseSchema>
+
+export const lessonPlanSchema = z.array(
+  z.object({
+    title: z.string(),
+    slug: z.string(),
+    emphasisLevel: z.enum(["low", "medium", "high"]),
+  })
+);
+
+export type LessonPlan = z.infer<typeof lessonPlanSchema>;

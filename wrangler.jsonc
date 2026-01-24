@@ -6,6 +6,12 @@
 	"compatibility_flags": [
 		"nodejs_compat"
 	],
+  "services": [
+    {
+      "binding": "WORKFLOWS_SERVICE",
+      "service": "nuru-tutor-workflows"
+    }
+  ],
 	"assets": {
 		"directory": ".open-next/assets",
 		"binding": "ASSETS",
@@ -35,5 +41,33 @@
 			"database_id": "96bea162-183c-45d8-8194-cb8cd2b3af57",
 			"remote": true
 		}
-	]
+	],
+  "env": {
+    "workflows": {
+      "name": "nuru-tutor-workflows",
+      "main": "workflows/index.ts",
+      "compatibility_date": "2025-09-27",
+      "observability": {
+        "enabled": true
+      },
+      "workflows": [
+        {
+          "name": "lesson-plan-generator",
+          "binding": "LESSON_PLAN_WORKFLOW",
+          "class_name": "LessonPlanWorkflow"
+        }
+      ],
+      "ai": {
+        "binding": "AI"
+      },
+      "d1_databases": [
+        {
+          "binding": "nuru_tutor_db",
+          "database_name": "nuru-tutor-db",
+          "database_id": "96bea162-183c-45d8-8194-cb8cd2b3af57",
+          "remote": true
+        }
+      ]
+    }
+  }
 }

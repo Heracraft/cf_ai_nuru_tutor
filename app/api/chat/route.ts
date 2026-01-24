@@ -115,26 +115,33 @@ myFunc = unda(param1, param2="default") {
 * \`fungua(path)\`: Opens a file reference.
 `;
 
+interface lessonRequestBody {
+	messages: any[];
+	language: "Swahili" | "English";
+  lessonContext?: {
+    title: string;
+    emphasisLevel: string;
+  };
+  userProfile?: {
+    age: string;
+    experienceLevel: string;
+    language: string;
+  };
+}
+
+// ... NURU_DOCS string ... (Keep it as is, or use a variable if available, but here I will assume I need to keep the file content or I can target just the function)
+// Since I can't target "just the function" easily without proper context of NURU_DOCS being preserved if I replace the whole file? 
+// I will use replace_file_content on the function ONLY.
+
 export async function POST(req: Request) {
 	const body = (await req.json()) as lessonRequestBody;
-	const { messages = [], language = "Swahili" } = body;
+	const { messages = [], language = "Swahili", lessonContext, userProfile } = body;
 
-	console.log(body.messages);
-
-	// const { env } = await getCloudflareContext({ async: true });
-
-	// const workersAI = createWorkersAI({
-	// 	binding: env.AI,
-	// });
-
-	// const model = workersAI("@cf/meta/llama-3-8b-instruct");
+	// console.log(body.messages);
 
 	const model = google("gemini-2.5-flash");
 
-	const result = streamText({
-		model,
-		messages: await convertToModelMessages(messages),
-		system: `
+  let systemPrompt = `
 You are an AI assistant for the 'Nuru' programming language (Swahili-based). 
 Use the following language specification to teach the user.
 Act as an interactive tutor helping a beginner learn the programming language unit by unit. 
@@ -143,17 +150,39 @@ The language used for explanation should be ${language}.
 The lesson content should be returned in .md.
 Each lesson should be about one concept only like comments, only. 
 Do not use hr. Start structure at ##. Keep the code line wrapped
+  `;
 
+  if (lessonContext && userProfile) {
+    systemPrompt = `
+You are Nuru, an expert AI tutor for the Nuru programming language (Swahili-based). 
+User Profile:
+- Age: ${userProfile.age}
+- Experience: ${userProfile.experienceLevel} (Previous: ${userProfile.language})
 
-${NURU_DOCS}
-`, 
+Current Lesson: ${lessonContext.title}
+Emphasis Level: ${lessonContext.emphasisLevel}
 
+Your goal is to teach this specific lesson.
+1. Start by introducing the concept in Swahili, but keep it simple based on the user's age/level.
+2. Provide a code example using \`andika()\` or other Nuru commands.
+3. Ask the user to try writing code.
+4. Correct them gently if they make mistakes.
+5. If the lesson is completed, suggest moving to the next one.
+
+Use the following language specification as reference:
+    `;
+  }
+
+  systemPrompt += `\n\n${NURU_DOCS}`;
+
+	const result = streamText({
+		model,
+		messages: await convertToModelMessages(messages),
+		system: systemPrompt,
 		output: Output.object({
 			schema: lessonResponseSchema,
 		}),
 	});
-
-	// console.log(result);
 
 	return result.toUIMessageStreamResponse();
 }
