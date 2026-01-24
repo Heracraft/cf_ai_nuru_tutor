@@ -29,8 +29,15 @@ export default function RootLayout({
 }>) {
 	return (
 		<html lang="en">
-			<body className={cn(notoSans.variable, "antialiased dark h-dvh flex flex-col")}>
-				<main className="max-w-2/3 mx-auto py-20">{children}</main>
+			<body
+				className={cn(
+					notoSans.variable,
+					"dark flex h-dvh justify-center antialiased",
+				)}
+			>
+				<main className="min-h-full flex-1 py-20 lg:max-w-2/3 xl:max-w-[60%]">
+					{children}
+				</main>
 			</body>
 		</html>
 	);

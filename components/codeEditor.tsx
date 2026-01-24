@@ -2,13 +2,14 @@
 
 import CodeMirror from "@uiw/react-codemirror";
 import { go } from "@codemirror/lang-go";
-import { EditorView } from "@codemirror/view";
+import { EditorView, } from "@codemirror/view";
 import { tags } from "@lezer/highlight";
 import { createTheme } from "@uiw/codemirror-themes";
 
 interface CodeEditorProps {
 	code: string;
-	onChange: (code: string) => void;
+	onChange?: (code: string) => void;
+	readOnly?: boolean;
 }
 
 // Custom dark theme matching our design
@@ -62,26 +63,32 @@ const editorBaseTheme = EditorView.baseTheme({
 	},
 });
 
-export function CodeEditor({ code, onChange }: CodeEditorProps) {
+export function CodeEditor({
+	code,
+	onChange,
+	readOnly = false,
+}: CodeEditorProps) {
 	return (
-		<div className="h-full overflow-hidden">
+		<div className="h-full overflow-hidden max-w-full">
 			<CodeMirror
 				value={code}
 				height="100%"
 				theme={playgroundTheme}
-				extensions={[go(), editorBaseTheme]}
-				onChange={(value) => onChange(value)}
+				extensions={[go(), editorBaseTheme, EditorView.lineWrapping]}
+				onChange={(value) => onChange?.(value)}
+				editable={!readOnly}
+				readOnly={readOnly}
 				basicSetup={{
 					lineNumbers: true,
-					highlightActiveLineGutter: true,
-					highlightActiveLine: true,
+					highlightActiveLineGutter: !readOnly,
+					highlightActiveLine: !readOnly,
 					foldGutter: true,
-					dropCursor: true,
+					dropCursor: !readOnly,
 					allowMultipleSelections: true,
-					indentOnInput: true,
+					indentOnInput: !readOnly,
 					bracketMatching: true,
-					closeBrackets: true,
-					autocompletion: true,
+					closeBrackets: !readOnly,
+					autocompletion: !readOnly,
 					rectangularSelection: true,
 					crosshairCursor: false,
 					highlightSelectionMatches: true,

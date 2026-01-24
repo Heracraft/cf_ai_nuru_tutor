@@ -3,6 +3,7 @@
 @import "shadcn/tailwind.css";
 
 @plugin "tailwind-scrollbar";
+@plugin "@tailwindcss/typography";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -132,6 +133,6 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-zinc-950 text-foreground;
+    @apply bg-background text-foreground;
   }
 }

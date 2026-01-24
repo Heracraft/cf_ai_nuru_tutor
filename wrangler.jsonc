@@ -3,7 +3,9 @@
 	"main": ".open-next/worker.js",
 	"name": "nuru-tutor",
 	"compatibility_date": "2026-01-19",
-	"compatibility_flags": ["nodejs_compat"],
+	"compatibility_flags": [
+		"nodejs_compat"
+	],
 	"assets": {
 		"directory": ".open-next/assets",
 		"binding": "ASSETS",
@@ -17,4 +19,21 @@
 			"invocation_logs": true,
 		},
 	},
+	"vars": {
+		// "GOOGLE_GENERATIVE_AI_API_KEY":"AIza....<my-actual-key>" 
+		// I think this is a good example of the importance of oversight when using LLMs. 
+		// Gemini 3 Pro reminded me to add var in this file, wrangler.jsonc,
+		// so that the var is available inside the workers runtime
+		// I caught that and immediately prompted it with "this cannot be safe" because obviously
+		// we're tracking this file. I wonder how many of these 'slip ups' LLMs make on a daily 
+		// are 'slipping' vulnerabilities into production systems. 
+	},
+	"d1_databases": [
+		{
+			"binding": "nuru_tutor_db",
+			"database_name": "nuru-tutor-db",
+			"database_id": "96bea162-183c-45d8-8194-cb8cd2b3af57",
+			"remote": true
+		}
+	]
 }
