@@ -20,37 +20,64 @@ import { Button } from "@/components/ui/button";
 
 import { TerminalIcon, PlayIcon, SparkleIcon } from "lucide-react";
 
+import { cn } from "@/lib/utils";
+
 import { PlaygroundProps, LanguageExecutor, logEntry } from "@/types";
 
-export function Playground({ initialCode, targetOutput }: PlaygroundProps) {
+import { useRef, useEffect } from "react";
+import { HelpResponse,  } from "@/lib/validation";
+
+export function Playground({
+	initialCode,
+	targetOutput,
+	className,
+	onRun,
+	lessonContext,
+}: PlaygroundProps) {
 	const [code, setCode] = useState(initialCode);
 	const [logs, setLogs] = useState<logEntry[]>([]);
+	const currentRunLogs = useRef<string[]>([]);
 
 	const [nuru, isNuruInitializing] = useNuru((content, isError) => {
 		setLogs((logs) => [...logs, { content, isError }]);
+		currentRunLogs.current.push(content);
 	});
 
-	const nuruExecutor: LanguageExecutor = {
-		language: "Nuru",
-		run: async (code) => {
-			// return await executeNuru(code);
-			console.log(code);
-			return "we rannn";
-		},
-		submit: async (code) => {
-			try {
-				// await executeNuru(code);
+	const [isHelpLoading, setIsHelpLoading] = useState(false);
 
-				return { status: 200 };
-			} catch (e) {
-				return { status: 400 };
+	const handleHelp = async () => {
+		setIsHelpLoading(true);
+		const res = await fetch("/api/help", {
+			method: "POST",
+			body: JSON.stringify({ code, output: logs.map((l) => l.content).join("\n"), lessonContext }),
+		});
+
+		const data = await res.json() as HelpResponse;
+
+		setCode(data.code);
+		// setLogs((prev) => [...prev, { content: data.explanation, isError: false }]);
+		setIsHelpLoading(false);
+	};
+
+	const handleRun = async () => {
+		if (!nuru) return;
+		setLogs([]);
+		currentRunLogs.current = [];
+
+		try {
+			nuru.execute(code);
+			// Wait a tick for logs to settle if sync, or if async execute resolves when done.
+			// Assuming execute resolves when execution finishes.
+			if (onRun) {
+				onRun(code, currentRunLogs.current.join("\n"));
 			}
-		},
-		getSolution: () => "za solution",
+		} catch (e) {
+			console.error(e);
+		}
 	};
 
 	return (
-		<div className="flex items-start gap-2">
+		<div className={cn("flex items-start gap-2", className)}>
 			<ResizablePanelGroup
 				direction="horizontal"
 				className="h-60 max-h-60 min-h-60 max-w-3xl flex-1 rounded border bg-zinc-900 md:min-w-112.5"
@@ -86,17 +113,21 @@ export function Playground({ initialCode, targetOutput }: PlaygroundProps) {
 			</ResizablePanelGroup>
 
 			<ButtonGroup orientation={"vertical"} className="dark:bg-zinc-900/">
-				<Button
-					disabled={isNuruInitializing}
-					onClick={() => {
-						nuru?.execute(code);
-					}}
-					size={"icon"}
-				>
+				<Button disabled={isNuruInitializing} onClick={handleRun} size={"icon"}>
 					<PlayIcon className="text-primary-foreground" />
 				</Button>
-				<Button disabled variant={"outline"} size={"icon"}>
-					<SparkleIcon className="text-foreground" />
+				<Button
+					disabled={isHelpLoading}
+					variant={"outline"}
+					size={"icon"}
+					onClick={handleHelp}
+				>
+					<SparkleIcon
+						className={cn(
+							"text-foreground",
+							isHelpLoading && "animate-pulse text-yellow-500",
+						)}
+					/>
 				</Button>
 			</ButtonGroup>
 		</div>

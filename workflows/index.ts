@@ -40,6 +40,7 @@ export class LessonPlanWorkflow extends WorkflowEntrypoint<Env, Params> {
         - Experience Level: ${experienceLevel}
         
         Generate a list of 5 lessons.
+        The lesson titles must be in Swahili.
       `;
 
 			const google = createGoogleGenerativeAI();

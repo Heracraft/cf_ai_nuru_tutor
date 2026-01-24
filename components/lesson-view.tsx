@@ -10,8 +10,18 @@ import { CodeEditor } from "@/components/codeEditor";
 import { Button } from "@/components/ui/button";
 import { Lesson } from "@/lib/validation";
 import { useRouter } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+
 import { Playground } from "./playground";
+
+import { ArrowLeft, ArrowRight, Send } from "lucide-react";
+import {
+	InputGroup,
+	InputGroupAddon,
+	InputGroupButton,
+	InputGroupInput,
+} from "@/components/ui/input-group";
+
+import { cn } from "@/lib/utils";
 
 interface LessonViewProps {
 	lesson: {
@@ -82,14 +92,21 @@ export function LessonView({ lesson, userProfile }: LessonViewProps) {
 												return (
 													<div
 														key={`${message.id}-${i}`}
-														className="prose prose-zinc dark:prose-invert prose-p:my-0 prose-li:my-0 prose-headings:my-0 prose-pre:my-0 prose-pre:py-0 max-w-none"
+														className="prose prose-zinc dark:prose-invert prose-pre:bg-inherit prose-p:my-0 prose-li:my-0 prose-headings:my-0 prose-pre:my-0 prose-pre:py-0 max-w-none"
 													>
 														{content.lessonContent && (
 															<>
 																{content.isStartOfNewLesson && (
-																	<div className="mb-4 flex items-center gap-5">
+																	<div
+																		className={cn(
+																			"mb-4 flex items-center gap-5",
+																			content.isStartOfNewLesson &&
+																				(content.order ?? 0) > 1 &&
+																				"mt-20",
+																		)}
+																	>
 																		<div className="bg-muted h-px flex-1"></div>
-																		<p className="text-lg font-semibold">
+																		<p className="text-xl font-semibold">
 																			Lesson {content.order}: {content.lesson}
 																		</p>
 																		<div className="bg-muted h-px flex-1"></div>
@@ -125,15 +142,24 @@ export function LessonView({ lesson, userProfile }: LessonViewProps) {
 																	}}
 																>
 																	{content.lessonContent}
-																	</Markdown>
+																</Markdown>
 															</>
 														)}
 
 														{content.exercise && (
 															<Playground
+																className="mt-4"
 																initialCode={content.exercise.initialCode}
 																targetOutput={content.exercise.targetOutput}
-																
+																onRun={(code, output) => {
+																	sendMessage({
+																		text: `Code:\n${code}\n\nOutput:\n${output}`,
+																	});
+																}}
+																lessonContext={{
+																	title: lesson.title,
+																	emphasisLevel: lesson.emphasisLevel,
+																}}
 															/>
 														)}
 													</div>
@@ -159,45 +185,43 @@ export function LessonView({ lesson, userProfile }: LessonViewProps) {
 
 			<div className="border-t border-zinc-800 bg-zinc-900 p-4">
 				<div className="mx-auto flex max-w-4xl gap-4">
-					{/* Interaction input would go here if we wanted the user to chat back via text, 
-                 but existing UI used CodeEditor mainly? 
-                 Ah, original page had "sendMessage({ text: 'next lesson' })" via buttons.
-                 And a Playground?
-                 The user request say "using a form (previous language...)" for ONBOARDING.
-                 For LESSON: "Chat interface prompts Gemini...".
-                 I should add a text input for the user to reply to the tutor?
-                 Original `Page.tsx` didn't have a text input for chat, only buttons "Next/Previous".
-                 But for a "Tutor", the user might need to ask questions.
-                 I'll add a simple input form.
-             */}
-					<form
-						className="flex flex-1 gap-2"
-						onSubmit={(e) => {
-							e.preventDefault();
-							const form = e.target as HTMLFormElement;
-							const input = form.elements.namedItem(
-								"message",
-							) as HTMLInputElement;
-							if (input.value.trim()) {
-								sendMessage({ text: input.value });
-								input.value = "";
-							}
-						}}
-					>
-						<input
+					<InputGroup className="border-zinc-700 bg-zinc-800">
+						<InputGroupInput
 							name="message"
-							className="flex-1 rounded-md border-zinc-700 bg-zinc-800 px-3 py-2 text-zinc-100 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-							placeholder="Ask Nuru a question or submit your code..."
+							placeholder="Uliza swali au omba msaada..."
+							className="text-zinc-100 placeholder:text-zinc-500"
+							onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
+								if (e.key === "Enter") {
+									const input = e.currentTarget;
+									if (input.value.trim()) {
+										sendMessage({ text: input.value });
+										input.value = "";
+									}
+								}
+							}}
 						/>
-						<Button type="submit">Send</Button>
-						<Button
-							type="button"
-							variant="outline"
-							onClick={() => sendMessage({ text: "Next step" })}
-						>
-							Continue
-						</Button>
-					</form>
+						<InputGroupAddon align="inline-end">
+							<InputGroupButton
+								onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
+									const input = e.currentTarget
+										.closest("div[data-slot='input-group']")
+										?.querySelector("input");
+									if (input && input.value.trim()) {
+										sendMessage({ text: input.value });
+										input.value = "";
+									}
+								}}
+							>
+								<Send />
+							</InputGroupButton>
+						</InputGroupAddon>
+					</InputGroup>
+					<Button
+						onClick={() => sendMessage({ text: "Next lesson please" })}
+						className="gap-2"
+					>
+						Endelea <ArrowRight className="h-4 w-4" />
+					</Button>
 				</div>
 			</div>
 		</div>

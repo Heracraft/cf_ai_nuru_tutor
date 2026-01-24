@@ -1,10 +1,10 @@
 import { z } from "zod";
 
 export const lessonResponseSchema = z.object({
-	lesson: z.string(),
-	lessonContent: z.string(),
-	// sampleCode: z.string(),
-	nextLesson: z.string(),
+  lesson: z.string(),
+  lessonContent: z.string(),
+  // sampleCode: z.string(),
+  nextLesson: z.string(),
   exercise: z.object({
     initialCode: z.string(),
     targetOutput: z.string(),
@@ -24,3 +24,10 @@ export const lessonPlanSchema = z.array(
 );
 
 export type LessonPlan = z.infer<typeof lessonPlanSchema>;
+
+export const helpResponseSchema = z.object({
+  code: z.string().describe("The code with added comments explaining the solution or providing hints."),
+  explanation: z.string().describe("A brief explanation of what was changed or a hint."),
+});
+
+export type HelpResponse = z.infer<typeof helpResponseSchema>;

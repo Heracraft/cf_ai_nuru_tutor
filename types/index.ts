@@ -11,7 +11,13 @@ export interface LanguageExecutor {
 export interface PlaygroundProps {
   initialCode: string;
   targetOutput?: string;
+  className?: string;
+  onRun?: (code: string, output: string) => void;
   //   executor: LanguageExecutor;
+  lessonContext?: {
+    title: string;
+    emphasisLevel: string;
+  };
 }
 
 export type logEntry = { content: string, isError: boolean }
