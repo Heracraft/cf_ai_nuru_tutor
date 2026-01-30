@@ -83,7 +83,7 @@ export function LessonView({ lesson, userProfile }: LessonViewProps) {
 			</header>
 
 			<div className="scrollbar scrollbar-thumb-zinc-600 scrollbar-track-zinc-800 flex-1 p-4 sm:p-10">
-				{messages.length > 0 ? (
+				{messages.length > 1 ? (
 					<div className="mx-auto flex max-w-4xl flex-col gap-6">
 						{messages.map((message) => {
 							if (message.role !== "user") {
@@ -150,7 +150,7 @@ export function LessonView({ lesson, userProfile }: LessonViewProps) {
 															</>
 														)}
 
-														{content.exercise && (
+														{content.exercise && content.lesson && (
 															<Playground
 																className="mt-4"
 																initialCode={content.exercise.initialCode}
@@ -161,7 +161,7 @@ export function LessonView({ lesson, userProfile }: LessonViewProps) {
 																	});
 																}}
 																lessonContext={{
-																	title: lesson.title,
+																	title: content.lesson,
 																	emphasisLevel: lesson.emphasisLevel,
 																}}
 																language={isEnglish ? "English" : "Swahili"}

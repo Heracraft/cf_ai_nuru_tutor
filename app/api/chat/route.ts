@@ -189,15 +189,15 @@ Use the following language specification as reference:
       schema: lessonResponseSchema,
     }),
 
-    tools: {
-      generateExercises: {
-        description: "Generates a coding exercise for the student. Call this on every new lesson to test the student's understanding.",
-        inputSchema: z.object({
-          initialCode: z.string(),
-          targetOutput: z.string(),
-        }),
-      },
-    },
+    // tools: {
+    //   generateExercises: {
+    //     description: "Generates a coding exercise for the student. Call this on every new lesson to test the student's understanding.",
+    //     inputSchema: z.object({
+    //       initialCode: z.string(),
+    //       targetOutput: z.string(),
+    //     }),
+    //   },
+    // },
   });
 
   return result.toUIMessageStreamResponse();
