@@ -102,6 +102,13 @@ npm run deploy
 npm run deploy:workflows
 ```
 
+## Resume & Portfolio
+
+**Wondering if this project is resume-worthy?** Check out:
+- **[QUICK_ANSWER.md](./QUICK_ANSWER.md)** - TL;DR: Yes! Quick reference guide
+- **[RESUME_GUIDANCE.md](./RESUME_GUIDANCE.md)** - Detailed analysis and positioning advice
+- **[RESUME_SNIPPETS.md](./RESUME_SNIPPETS.md)** - Ready-to-use bullets and descriptions
+
 ## AI Prompts
 
 A record of the AI prompts used to assist in building this project can be found in [PROMPTS.md](./PROMPTS.md).
