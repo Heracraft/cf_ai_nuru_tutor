@@ -106,6 +106,7 @@ npm run deploy:workflows
 
 **Wondering if this project is resume-worthy?** Check out:
 - **[QUICK_ANSWER.md](./QUICK_ANSWER.md)** - TL;DR: Yes! Quick reference guide
+- **[TECHNICAL_RESUME_ANALYSIS.md](./TECHNICAL_RESUME_ANALYSIS.md)** - ⭐ **NEW:** Comprehensive technical analysis with architecture breakdown, engineering wins, and role-specific bullets
 - **[RESUME_GUIDANCE.md](./RESUME_GUIDANCE.md)** - Detailed analysis and positioning advice
 - **[RESUME_SNIPPETS.md](./RESUME_SNIPPETS.md)** - Ready-to-use bullets and descriptions
 
