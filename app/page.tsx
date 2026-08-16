@@ -25,6 +25,7 @@ function OnboardingContent() {
 	const router = useRouter();
 	const searchParams = useSearchParams();
 	const [isLoading, setIsLoading] = useState(false);
+	const [error, setError] = useState<string | null>(null);
 	const [formData, setFormData] = useState({
 		age: "",
 		language: "",
@@ -38,6 +39,7 @@ function OnboardingContent() {
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
 		setIsLoading(true);
+		setError(null);
 
 		try {
 			const response = await fetch("/api/onboarding", {
@@ -51,22 +53,26 @@ function OnboardingContent() {
 				}),
 			});
 
-			if (!response.ok) {
-				throw new Error("Failed to start journey");
+			const data = (await response.json().catch(() => ({}))) as {
+				userId?: string;
+				error?: string;
+			};
+
+			if (!response.ok || !data.userId) {
+				throw new Error(data.error ?? "Failed to start your learning path.");
 			}
 
-			const data = (await response.json()) as { userId: string };
+			localStorage.setItem("nuru_userId", data.userId);
+			const langParam = searchParams.get("language");
+			const query = langParam ? `&language=${langParam}` : "";
 
-			if (data.userId) {
-				localStorage.setItem("nuru_userId", data.userId);
-				const langParam = searchParams.get("language");
-				const query = langParam ? `&language=${langParam}` : "";
-				router.push(`/dashboard?userId=${data.userId}${query}`);
-			}
-		} catch (error) {
-			console.error("Error:", error);
-			// Ideally show toast error here
-		} finally {
+			// The plan generates in the background; the dashboard streams it in.
+			router.push(`/dashboard?userId=${data.userId}${query}`);
+		} catch (e) {
+			console.error("Onboarding failed:", e);
+			setError(
+				e instanceof Error ? e.message : "Failed to start your learning path.",
+			);
 			setIsLoading(false);
 		}
 	};
@@ -139,13 +145,24 @@ function OnboardingContent() {
 							</Select>
 						</div>
 					</CardContent>
-					<CardFooter>
+					<CardFooter className="flex-col items-stretch gap-3">
+						{error && (
+							<p className="rounded border border-red-900/60 bg-red-950/30 px-3 py-2 text-sm text-red-300">
+								{error}
+							</p>
+						)}
 						<Button
 							type="submit"
 							className="w-full bg-emerald-600 text-white hover:bg-emerald-700"
 							disabled={isLoading}
 						>
-							{isLoading ? "Generating Plan..." : "Start Learning Path"}
+							{isLoading
+								? isEnglish
+									? "Starting..."
+									: "Tunaanza..."
+								: isEnglish
+									? "Start Learning Path"
+									: "Anza Safari Yako"}
 						</Button>
 					</CardFooter>
 				</form>

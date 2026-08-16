@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { LessonView } from "@/components/lesson-view";
 import { db } from "@/lib/db";
 import { lessons, users } from "@/lib/db/schema";
+import { isUuid } from "@/lib/utils";
 
 interface PageProps {
 	params: Promise<{ id: string }>;
@@ -12,6 +13,10 @@ interface PageProps {
 export default async function LessonPage({ params, searchParams }: PageProps) {
 	const { id } = await params;
 	const { language: langParam } = await searchParams;
+
+	if (!isUuid(id)) {
+		return <div className="p-10 text-white">Lesson not found</div>;
+	}
 
 	const [lesson] = await db
 		.select()

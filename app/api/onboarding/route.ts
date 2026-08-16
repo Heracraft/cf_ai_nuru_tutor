@@ -1,40 +1,63 @@
-import { getCloudflareContext } from "@opennextjs/cloudflare";
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse, after, type NextRequest } from "next/server";
 
+import { db } from "@/lib/db";
+import { generationJobs, users } from "@/lib/db/schema";
+import { runGeneration } from "@/lib/generation/run";
 
+interface OnboardingBody {
+	age?: string;
+	language?: string;
+	experienceLevel?: string;
+	targetLanguage?: string;
+}
 
 export async function POST(req: NextRequest) {
-  try {
-    const { age, language, experienceLevel, targetLanguage } = await req.json() as { age: string, language: string, experienceLevel: string, targetLanguage?: string };
-    const { env } = await getCloudflareContext({ async: true });
-    const userId = crypto.randomUUID();
+	try {
+		const body = (await req.json()) as OnboardingBody;
 
-    // Create User
-    await env.nuru_tutor_db.prepare(
-      "INSERT INTO users (id, age, language, experience_level) VALUES (?, ?, ?, ?)"
-    ).bind(userId, parseInt(age), language, experienceLevel).run();
+		const age = body.age?.trim();
+		const experienceLevel = body.experienceLevel?.trim();
 
-    // Trigger Workflow via Service Binding
-    // Service Binding 'fetch' expects a full URL passed, but for Service Bindings the hostname is ignored.
-    if (!env.WORKFLOWS_SERVICE) {
-      throw new Error("WORKFLOWS_SERVICE is not defined");
-    }
+		if (!age || !experienceLevel) {
+			return NextResponse.json(
+				{ error: "age and experienceLevel are required" },
+				{ status: 400 },
+			);
+		}
 
-    const workflowResponse = await env.WORKFLOWS_SERVICE.fetch("http://workflows/", {
-      method: "POST",
-      body: JSON.stringify({ userId, age, language, experienceLevel, targetLanguage }),
-    });
+		const parsedAge = Number.parseInt(age, 10);
 
-    if (!workflowResponse.ok) {
-      console.error("Workflow trigger failed", await workflowResponse.text());
-      return NextResponse.json({ error: "Failed to trigger lesson plan generation" }, { status: 500 });
-    }
+		const [user] = await db
+			.insert(users)
+			.values({
+				age: Number.isNaN(parsedAge) ? null : parsedAge,
+				language: body.language?.trim() || "none",
+				experienceLevel,
+			})
+			.returning();
 
-    const workflowData = await workflowResponse.json() as { id: string };
+		const [job] = await db
+			.insert(generationJobs)
+			.values({ userId: user.id, status: "pending", stage: "queued" })
+			.returning();
 
-    return NextResponse.json({ userId, workflowId: workflowData.id });
-  } catch (e: any) {
-    console.error("Onboarding error", e);
-    return NextResponse.json({ error: e.message }, { status: 500 });
-  }
+		// Return as soon as the job exists. Generation continues after the
+		// response is sent, and the client watches it over SSE.
+		after(() =>
+			runGeneration({
+				jobId: job.id,
+				userId: user.id,
+				age,
+				language: body.language?.trim() || "none",
+				experienceLevel,
+				targetLanguage: body.targetLanguage || "Swahili",
+			}),
+		);
+
+		return NextResponse.json({ userId: user.id, jobId: job.id });
+	} catch (e: unknown) {
+		const message = e instanceof Error ? e.message : "Onboarding failed";
+		console.error("Onboarding error", e);
+		return NextResponse.json({ error: message }, { status: 500 });
+	}
 }

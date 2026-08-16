@@ -39,6 +39,10 @@ export function Playground({
 	const [logs, setLogs] = useState<logEntry[]>([]);
 	const currentRunLogs = useRef<string[]>([]);
 
+	useEffect(() => {
+		setCode(initialCode);
+	}, [initialCode]);
+
 	const [nuru, isNuruInitializing] = useNuru((content, isError) => {
 		setLogs((logs) => [...logs, { content, isError }]);
 		currentRunLogs.current.push(content);

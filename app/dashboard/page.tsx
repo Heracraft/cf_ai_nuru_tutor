@@ -1,101 +1,74 @@
-import { asc, eq } from "drizzle-orm";
-import { db } from "@/lib/db";
-import { lessons as lessonsTable } from "@/lib/db/schema";
+import { asc, desc, eq } from "drizzle-orm";
+
 import { DashboardRedirector } from "@/components/dashboard-redirector";
-import { PagePoller } from "@/components/page-poller";
-import { Skeleton } from "@/components/ui/skeleton";
 import {
-	Card,
-	CardContent,
-	CardHeader,
-	CardTitle,
-	CardDescription,
-} from "@/components/ui/card";
-import Link from "next/link";
-import { CheckCircle2, Circle } from "lucide-react";
+	LessonPlanStream,
+	type PlanLesson,
+} from "@/components/lesson-plan-stream";
+import { db } from "@/lib/db";
+import { generationJobs, lessons as lessonsTable } from "@/lib/db/schema";
+import { isUuid } from "@/lib/utils";
 
 export default async function DashboardPage(props: {
 	searchParams: Promise<{ userId?: string; language?: string }>;
 }) {
-	const searchParams = await props.searchParams;
-	const { userId, language } = searchParams;
+	const { userId, language } = await props.searchParams;
 
-	if (!userId) {
+	// userId comes from the query string, so a typo would otherwise reach
+	// Postgres as a malformed uuid and throw a 500.
+	if (!userId || !isUuid(userId)) {
 		return <DashboardRedirector />;
 	}
 
-	const lessons = await db
-		.select()
-		.from(lessonsTable)
-		.where(eq(lessonsTable.userId, userId))
-		.orderBy(asc(lessonsTable.order));
+	const isEnglish =
+		language?.toLowerCase() === "en" || language?.toLowerCase() === "english";
+
+	const [lessons, [job]] = await Promise.all([
+		db
+			.select()
+			.from(lessonsTable)
+			.where(eq(lessonsTable.userId, userId))
+			.orderBy(asc(lessonsTable.order)),
+		db
+			.select()
+			.from(generationJobs)
+			.where(eq(generationJobs.userId, userId))
+			.orderBy(desc(generationJobs.createdAt))
+			.limit(1),
+	]);
+
+	const initialLessons: PlanLesson[] = lessons.map((lesson) => ({
+		id: lesson.id,
+		title: lesson.title,
+		slug: lesson.slug,
+		emphasisLevel: lesson.emphasisLevel ?? "medium",
+		order: lesson.order,
+		completed: lesson.completed,
+	}));
 
 	return (
 		<div className="min-h-screen bg-zinc-950 p-8 text-zinc-100">
 			<div className="mx-auto max-w-4xl space-y-8">
 				<header>
 					<h1 className="text-3xl font-bold text-emerald-500">
-						Your Learning Path
+						{isEnglish ? "Your Learning Path" : "Njia Yako ya Kujifunza"}
 					</h1>
 					<p className="text-zinc-400">
-						Track your progress and continue learning.
+						{isEnglish
+							? "Track your progress and continue learning."
+							: "Fuatilia maendeleo yako na endelea kujifunza."}
 					</p>
 				</header>
 
-				{lessons.length === 0 ? (
-					<div className="grid gap-4">
-						{[...Array(3)].map((_, i) => (
-							<Card key={i} className="border-zinc-800 bg-zinc-900">
-								<CardHeader className="flex flex-row items-center justify-between pb-2">
-									<Skeleton className="h-6 w-1/3" />
-									<Skeleton className="h-6 w-6 rounded-full" />
-								</CardHeader>
-								<CardContent>
-									<div className="flex gap-2">
-										<Skeleton className="h-5 w-24" />
-									</div>
-								</CardContent>
-							</Card>
-						))}
-						<div className="hidden">
-							<PagePoller />
-						</div>
-						<p className="mt-4 animate-pulse text-center text-sm text-zinc-500">
-							Generating your personalized lesson plan...
-						</p>
-					</div>
-				) : (
-					<div className="grid gap-4">
-						{lessons.map((lesson) => (
-							<Link
-								key={lesson.id}
-								href={`/lesson/${lesson.id}${language ? `?language=${language}` : ""}`}
-							>
-								<Card
-									className={`border-zinc-800 bg-zinc-900 transition-colors hover:border-emerald-500/50 ${lesson.completed ? "border-emerald-900/50 bg-emerald-950/10" : ""}`}
-								>
-									<CardHeader className="flex flex-row items-center justify-between pb-2">
-										<CardTitle className="text-xl font-semibold text-zinc-100">
-											{lesson.title}
-										</CardTitle>
-										{lesson.completed ? (
-											<CheckCircle2 className="h-6 w-6 text-emerald-500" />
-										) : (
-											<Circle className="h-6 w-6 text-zinc-600" />
-										)}
-									</CardHeader>
-									<CardContent>
-										<div className="flex gap-2 text-sm text-zinc-400">
-											<span className="rounded bg-zinc-800 px-2 py-1 text-xs tracking-wider uppercase">
-												{lesson.emphasisLevel} Emphasis
-											</span>
-										</div>
-									</CardContent>
-								</Card>
-							</Link>
-						))}
-					</div>
-				)}
+				<LessonPlanStream
+					jobId={job?.id ?? null}
+					jobStatus={job?.status ?? null}
+					jobError={job?.error ?? null}
+					jobUpdatedAt={job?.updatedAt?.toISOString() ?? null}
+					initialLessons={initialLessons}
+					language={language}
+					isEnglish={isEnglish}
+				/>
 			</div>
 		</div>
 	);
