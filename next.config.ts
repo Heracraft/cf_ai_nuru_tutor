@@ -1,10 +1,8 @@
 import type { NextConfig } from "next";
-import { initOpenNextCloudflareForDev } from "@opennextjs/cloudflare";
-
-initOpenNextCloudflareForDev();
 
 const nextConfig: NextConfig = {
-  /* config options here */
+	// Traced-dependency output, so the runtime Docker image stays small.
+	output: "standalone",
 };
 
 export default nextConfig;
