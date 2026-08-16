@@ -1,107 +1,102 @@
-# cf_ai_nuru_tutor
+# Nuru Tutor
 
-**Submission for Cloudflare AI App Optional Assignment**
+An AI programming tutor for **Nuru**, a Swahili-based programming language. It builds a personalised lesson plan from a learner's age, prior languages, and stated experience, then teaches each lesson interactively with a runnable code playground.
 
-**Nuru Tutor** is an AI-powered programming tutor for **Nuru** (a Swahili-based programming language). This application personalizes learning paths for students based on their experience level and age, generating custom lesson plans and interactive coding exercises.
+Self-hosted, with Docker and Postgres. Runs against OpenAI or Gemini.
 
-## Assignment Components
+## Why it looks like this now
 
-- **LLM**: **Google Gemini 3 Preview** (via Vercel AI SDK).
-  - Used for generating lesson plans, explaining code, and providing real-time feedback.
-- **Workflow / Coordination**: **Cloudflare Workflows**.
-  - `LessonPlanWorkflow` asynchronously generates structured, multi-step lesson paths to prevent UI blocking during complex generation tasks.
-- **User input**: **Next.js (React) on Cloudflare Pages**.
-  - Provides an interactive UI for chat  via `shadcn/ui` components.
-- **Memory or state**: **Cloudflare D1**.
-  - Persists user profiles, lesson progress, and generated curriculum using SQLite.
+This started as a Cloudflare assignment submission, and the architecture showed it. D1 for storage, Workflows for a single LLM call, Workers AI alongside Gemini, OpenNext to get Next.js onto Workers. Those pieces were chosen to demonstrate a platform rather than because the app needed them, and each one added a moving part: a second deployed worker, generated binding types, a wrangler config, an HTTP hop between the app and its own background job.
 
-## Architecture decisions 
+The app needs a database, one model provider, and somewhere to run a background task. So it now has exactly that.
 
-### Why OpenNext on Cloudflare?
+## Architecture
 
-This project uses `@opennextjs/cloudflare` to deploy Next.js 16. This is so that Next server code has direct access to Cloudflare bindings, eliminating the need to proxy requests. This approach is faster too since the workers running Next and the rest of the bindings are in the same network. Overall, this leads to faster performance.
+| Concern | Choice | Reasoning |
+| --- | --- | --- |
+| Database | Postgres via Drizzle | A managed service in Coolify with real backups, rather than a volume to remember to snapshot. Drizzle replaces a hand-written SQL migration. |
+| Background work | In-process, via Next's `after()` | Plan generation is one LLM call under 15 seconds. A queue or a second container would be machinery around a single request. |
+| Progress reporting | Server-sent events | The client watches the job rather than polling for it. |
+| Model provider | OpenAI, falling back to Gemini | Chosen by which key is present, so the same image runs either way. |
 
-### Why Gemini over Workers AI
+### How plan generation works
 
-It boils down to deterministic outputs and performance. For the project, I needed to use tools (i.e., function calling) to have the LLM build interactive learning experiences for the user. The output also had to be deterministic so that every feature works perfectly. Models like `@cf/meta/llama-3.1-8b-instruct` struggle with this. On top of that, performance was a bottleneck. I would often get hit with Gateway timeout errors in development. Gemini 3, on the other hand, handles streaming, structured outputs, and function calling with blazing speed.
+1. `POST /api/onboarding` inserts the user and a `generation_jobs` row, then returns immediately. The form never waits on a model.
+2. Generation continues in `after()`. It streams an array of lessons, writing each one to Postgres as it completes.
+3. The dashboard subscribes to `/api/generation/[jobId]/stream`. That endpoint first replays current job state and any lessons already written, then switches to live events, so a reload, a late arrival, or a dropped connection all end up with the same picture.
+4. Stage markers cover the gap before the first lesson lands. Once lessons start arriving, cards appear one at a time.
 
-## Future
+Two clocks guard a stuck run. The model call aborts at 90 seconds. Separately, the dashboard treats a job that has stopped reporting for two minutes as dead and offers a retry, which is what a mid-run process restart looks like from the outside.
 
-I had a lot of fun building this project. I gained a lot of insight into building AI-driven user experiences. I am definitely adding this to my side projects and shipping it in the future. And in service to that future, here are some to-dos.
+### Cost shape
 
-#### ORM
+Lessons are generated once and stored in `lessons.content`. Reopening a lesson serves the stored copy, so it costs nothing and shows the same lesson it did last time.
 
-Our current approach to DB migrations is extremely brittle. The first and only migration I wrote manually in a `.sql` file. Fast, yes, but error-prone. I thought of adding Drizzle to the stack, but it wasn't worth the time. It is the first thing I am adding next time.
+Three call profiles, each overridable by env var:
 
-#### Internationalization
+| Profile | Default | Why |
+| --- | --- | --- |
+| `chat` | `gpt-5-mini`, low reasoning | Streams a structured object the client parses incrementally. A schema slip blanks the screen. |
+| `plan` | `gpt-5-mini`, low reasoning | Once per student, and the first thing they read. Nano-tier wrote broken Swahili here. |
+| `help` | `gpt-5-nano`, minimal reasoning | Frequent, small, cheap to retry. |
 
-The app is geared towards Swahili learners, thus a Swahili UI and Swahili lessons from the LLM. What if the user isn't a Swahili speaker, like you, dear reader from the Cloudflare engineering team? I set up rudimentary intl using a queryParam (`?language=en`), but more work is required.
+## Running it
 
-## Features
-
-- **Personalized Onboarding**: Dynamically assesses user experience (age, prior language knowledge).
-- **Interactive Code Tutor**: Real-time context-aware feedback.
-- **Structured AI Outputs**: Uses JSON schemas via zod for reliable UI rendering.
-
-## Getting Started
-
-### Prerequisites
-
-- Node.js (v20+)
-- Cloudflare Account
-- `wrangler` CLI installed globally (`npm i -g wrangler`)
-- Google AI API Key (for Gemini)
-
-### Installation
-
-1.  Clone the repository:
+### With Docker
 
 ```bash
-git clone https://github.com/Heracraft/cf_ai_nuru_tutor.git
-cd cf_ai_nuru_tutor
+cp .env.example .env      # set OPENAI_API_KEY and a real POSTGRES_PASSWORD
+docker compose up --build
 ```
 
-2.  Install dependencies:
+The app comes up on `http://localhost:3000`. Migrations apply automatically before the server starts.
+
+### Locally
+
+Requires Node 24+, pnpm, and a Postgres you can reach.
 
 ```bash
-npm install
+pnpm install
+cp .env.example .env.local     # set DATABASE_URL and OPENAI_API_KEY
+pnpm db:migrate
+pnpm dev
 ```
 
-3.  Configure Environment:
-    - `GOOGLE_GENERATIVE_AI_API_KEY`: Via `wrangler secret put` for production or in `.dev.vars` for local dev.
+### Deploying to Coolify
 
-### Running Locally
+Point Coolify at this repo and choose Docker Compose as the build pack. Set `OPENAI_API_KEY` and a real `POSTGRES_PASSWORD` on the service. `DATABASE_URL` is assembled inside `docker-compose.yml` from the Postgres variables, so leave it alone.
 
-This project operates with two coordinated services: the Next.js frontend (Worker) and the independent Workflow Worker.
+Deploys restart the whole stack, which means a few seconds of downtime. That is a deliberate trade for keeping the setup to one compose file; see [TODO.md](./TODO.md).
 
-1.  **Frontend & API (Next.js)**
-    Start the main application server:
+## Configuration
 
-    ```bash
-    npm run dev
-    ```
+| Variable | Default | Notes |
+| --- | --- | --- |
+| `DATABASE_URL` | none, required | Postgres connection string. |
+| `OPENAI_API_KEY` | none | `OPEN_AI_API_KEY` is accepted too. |
+| `GOOGLE_GENERATIVE_AI_API_KEY` | none | Used when no OpenAI key is present. |
+| `AI_PROVIDER` | by key presence | Force `openai` or `google`. |
+| `OPENAI_BASE_URL` | `https://api.openai.com/v1` | Point at OpenRouter, Groq, or a local vLLM. |
+| `AI_MODEL_CHAT` | `gpt-5-mini` | |
+| `AI_MODEL_PLAN` | `gpt-5-mini` | |
+| `AI_MODEL_HELP` | `gpt-5-nano` | |
 
-    _Access the app at `http://localhost:3000`_
+At least one provider key is required. The app throws on boot without one, rather than on a student's first click.
 
-2.  **Workflows Worker**
-    In a separate terminal, start the background workflow service:
-    ```bash
-    npm run dev:workflows
-    ```
-    _This handles the asynchronous generation of lesson plans._
-
-### Cloudflare Deployment
-
-To deploy both the application and the workflows to Cloudflare:
+## Database
 
 ```bash
-npm run deploy
+pnpm db:generate   # generate a migration after editing lib/db/schema.ts
+pnpm db:migrate    # apply pending migrations
+pnpm db:studio     # browse the data
 ```
 
-```bash
-npm run deploy:workflows
-```
+Three tables: `users` holds the onboarding profile, `lessons` holds the plan and each generated body, `generation_jobs` tracks a generation run so the SSE endpoint has something durable to replay.
 
-## AI Prompts
+## Known gaps
 
-A record of the AI prompts used to assist in building this project can be found in [PROMPTS.md](./PROMPTS.md).
+There is no authentication. A user id lives in `localStorage` and travels in the query string, so anyone holding an id can open that learner's plan. Fine for a self-hosted instance, not fine for a public one. That and the rest are tracked in [TODO.md](./TODO.md).
+
+## AI prompts
+
+A record of the prompts used while building this is in [PROMPTS.md](./PROMPTS.md).
