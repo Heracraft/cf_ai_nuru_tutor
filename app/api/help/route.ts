@@ -1,32 +1,35 @@
-import { google } from "@ai-sdk/google";
-import { streamText, Output, generateText } from "ai";
+import { generateText, Output } from "ai";
+
+import { getModel, getProviderOptions } from "@/lib/ai";
+import { NURU_DOCS } from "@/lib/nuru-docs";
 import { helpResponseSchema } from "@/lib/validation";
-import { NURU_DOCS } from "../chat/route";
 
 interface HelpRequestBody {
-    code: string;
-    output: string;
-    language?: string;
-    lessonContext?: {
-        title: string;
-        emphasisLevel: string;
-    };
+	code: string;
+	output: string;
+	language?: string;
+	lessonContext?: {
+		title: string;
+		emphasisLevel: string;
+	};
 }
 
 export async function POST(req: Request) {
-    const url = new URL(req.url);
-    const paramLanguage = url.searchParams.get("language");
+	const url = new URL(req.url);
+	const paramLanguage = url.searchParams.get("language");
 
-    const body = (await req.json()) as HelpRequestBody;
-    let { code, output, lessonContext, language = "Swahili" } = body;
+	const body = (await req.json()) as HelpRequestBody;
+	const { code, output, lessonContext } = body;
+	let language = body.language ?? "Swahili";
 
-    if (paramLanguage?.toLowerCase() === "english" || paramLanguage?.toLowerCase() === "en") {
-        language = "English";
-    }
+	if (
+		paramLanguage?.toLowerCase() === "english" ||
+		paramLanguage?.toLowerCase() === "en"
+	) {
+		language = "English";
+	}
 
-    const selectedModel = google("gemini-3-flash-preview");
-
-    const systemPrompt = `
+	const systemPrompt = `
 You are a helpful AI tutor for the Nuru programming language (Swahili-based).
 Your goal is to help a student who is stuck or needs assistance.
 You will be provided with the current code they wrote and the output/error log they received.
@@ -44,12 +47,11 @@ Instructions:
 6. The explanations should be in ${language} (unless requested otherwise, but default is ${language}).
 7. Return the result as a structured object: { code: string, explanation: string }.
 
-
 Reference Nuru Specs:
 ${NURU_DOCS}
   `;
 
-    const userContent = `
+	const userContent = `
 Code:
 ${code}
 
@@ -57,16 +59,17 @@ Output/Logs:
 ${output}
   `;
 
-    const { output: result } = await generateText({
-        model: selectedModel,
-        messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: userContent },
-        ],
-        output: Output.object({
-            schema: helpResponseSchema,
-        }),
-    });
+	const { output: result } = await generateText({
+		model: getModel("utility"),
+		providerOptions: getProviderOptions("utility"),
+		messages: [
+			{ role: "system", content: systemPrompt },
+			{ role: "user", content: userContent },
+		],
+		output: Output.object({
+			schema: helpResponseSchema,
+		}),
+	});
 
-    return Response.json(result);
+	return Response.json(result);
 }
