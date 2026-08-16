@@ -1,4 +1,6 @@
-import { getCloudflareContext } from "@opennextjs/cloudflare";
+import { asc, eq } from "drizzle-orm";
+import { db } from "@/lib/db";
+import { lessons as lessonsTable } from "@/lib/db/schema";
 import { DashboardRedirector } from "@/components/dashboard-redirector";
 import { PagePoller } from "@/components/page-poller";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -22,18 +24,11 @@ export default async function DashboardPage(props: {
 		return <DashboardRedirector />;
 	}
 
-	const { env } = await getCloudflareContext({ async: true });
-
-	// Fetch lessons
-	const { results: lessons } = await env.nuru_tutor_db
-		.prepare(`SELECT * FROM lessons WHERE user_id = ? ORDER BY "order" ASC`)
-		.bind(userId)
-		.all();
-
-	console.log({ lessons });
-
-	// If no lessons found, maybe workflow is still running?
-	// We can show a loading state or "No lessons generated yet"
+	const lessons = await db
+		.select()
+		.from(lessonsTable)
+		.where(eq(lessonsTable.userId, userId))
+		.orderBy(asc(lessonsTable.order));
 
 	return (
 		<div className="min-h-screen bg-zinc-950 p-8 text-zinc-100">
@@ -71,7 +66,7 @@ export default async function DashboardPage(props: {
 					</div>
 				) : (
 					<div className="grid gap-4">
-						{lessons.map((lesson: any) => (
+						{lessons.map((lesson) => (
 							<Link
 								key={lesson.id}
 								href={`/lesson/${lesson.id}${language ? `?language=${language}` : ""}`}
@@ -92,7 +87,7 @@ export default async function DashboardPage(props: {
 									<CardContent>
 										<div className="flex gap-2 text-sm text-zinc-400">
 											<span className="rounded bg-zinc-800 px-2 py-1 text-xs tracking-wider uppercase">
-												{lesson.emphasis_level} Emphasis
+												{lesson.emphasisLevel} Emphasis
 											</span>
 										</div>
 									</CardContent>

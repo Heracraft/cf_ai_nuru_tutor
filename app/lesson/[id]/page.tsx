@@ -1,6 +1,8 @@
-import { getCloudflareContext } from "@opennextjs/cloudflare";
+import { eq } from "drizzle-orm";
+
 import { LessonView } from "@/components/lesson-view";
-import { redirect } from "next/navigation";
+import { db } from "@/lib/db";
+import { lessons, users } from "@/lib/db/schema";
 
 interface PageProps {
 	params: Promise<{ id: string }>;
@@ -10,37 +12,25 @@ interface PageProps {
 export default async function LessonPage({ params, searchParams }: PageProps) {
 	const { id } = await params;
 	const { language: langParam } = await searchParams;
-	const { env } = await getCloudflareContext({ async: true });
 
-	// Fetch lesson
-	const lesson = await env.nuru_tutor_db
-		.prepare("SELECT * FROM lessons WHERE id = ?")
-		.bind(id)
-		.first<{
-			id: string;
-			title: string;
-			emphasis_level: string;
-			order: number;
-			user_id: string;
-		}>();
+	const [lesson] = await db
+		.select()
+		.from(lessons)
+		.where(eq(lessons.id, id))
+		.limit(1);
 
 	if (!lesson) {
 		return <div className="p-10 text-white">Lesson not found</div>;
 	}
 
-	// Fetch user
-	const user = await env.nuru_tutor_db
-		.prepare("SELECT * FROM users WHERE id = ?")
-		.bind(lesson.user_id)
-		.first<{
-			id: string;
-			age: number;
-			language: string;
-			experience_level: string;
-		}>();
+	const [user] = await db
+		.select()
+		.from(users)
+		.where(eq(users.id, lesson.userId))
+		.limit(1);
 
 	if (!user) {
-		// Should not happen if foreign key integrity, but handle anyway
+		// Should not happen given the foreign key, but handle anyway.
 		return <div className="p-10 text-white">User profile not found</div>;
 	}
 
@@ -48,20 +38,20 @@ export default async function LessonPage({ params, searchParams }: PageProps) {
 		typeof langParam === "string" &&
 		(langParam.toLowerCase() === "en" || langParam.toLowerCase() === "english")
 			? "English"
-			: user.language;
+			: (user.language ?? "Swahili");
 
 	return (
 		<LessonView
 			lesson={{
 				id: lesson.id,
 				title: lesson.title,
-				emphasisLevel: lesson.emphasis_level,
+				emphasisLevel: lesson.emphasisLevel ?? "medium",
 				order: lesson.order,
 			}}
 			userProfile={{
-				age: String(user.age),
+				age: String(user.age ?? ""),
 				language: languageOverride,
-				experienceLevel: user.experience_level,
+				experienceLevel: user.experienceLevel ?? "beginner",
 			}}
 		/>
 	);
