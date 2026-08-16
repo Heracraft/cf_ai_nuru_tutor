@@ -52,6 +52,7 @@ export default async function LessonPage({ params, searchParams }: PageProps) {
 				title: lesson.title,
 				emphasisLevel: lesson.emphasisLevel ?? "medium",
 				order: lesson.order,
+				content: lesson.content,
 			}}
 			userProfile={{
 				age: String(user.age ?? ""),

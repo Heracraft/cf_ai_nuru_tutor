@@ -1,12 +1,17 @@
+import { and, eq, isNull } from "drizzle-orm";
 import { convertToModelMessages, Output, streamText } from "ai";
 
 import { getModel, getProviderOptions } from "@/lib/ai";
+import { db } from "@/lib/db";
+import { lessons } from "@/lib/db/schema";
 import { NURU_DOCS } from "@/lib/nuru-docs";
+import { isUuid } from "@/lib/utils";
 import { lessonResponseSchema } from "@/lib/validation";
 
 interface LessonRequestBody {
 	messages: any[];
 	language: "Swahili" | "English";
+	lessonId?: string;
 	lessonContext?: {
 		title: string;
 		emphasisLevel: string;
@@ -24,7 +29,7 @@ export async function POST(req: Request) {
 
 	const body = (await req.json()) as LessonRequestBody;
 	let { messages = [], language = "Swahili" } = body;
-	const { lessonContext, userProfile } = body;
+	const { lessonContext, userProfile, lessonId } = body;
 
 	if (paramLanguage?.toLowerCase() === "english") {
 		language = "English";
@@ -72,6 +77,22 @@ Use the following language specification as reference:
 		output: Output.object({
 			schema: lessonResponseSchema,
 		}),
+		async onFinish({ text }) {
+			if (!lessonId || !isUuid(lessonId) || !text) return;
+
+			// Only the first completed turn is stored, which is the lesson body
+			// itself. The IS NULL guard makes that true even if two tabs race,
+			// and keeps later chat turns from overwriting the lesson.
+			try {
+				await db
+					.update(lessons)
+					.set({ content: text })
+					.where(and(eq(lessons.id, lessonId), isNull(lessons.content)));
+			} catch (error) {
+				// A failed write costs a regeneration next visit, not the lesson.
+				console.error(`Failed to persist lesson ${lessonId}:`, error);
+			}
+		},
 	});
 
 	return result.toUIMessageStreamResponse();

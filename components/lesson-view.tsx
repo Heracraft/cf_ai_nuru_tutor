@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import { DefaultChatTransport } from "ai";
+import { useEffect, useMemo, useRef } from "react";
+import { DefaultChatTransport, type UIMessage } from "ai";
 import { useChat } from "@ai-sdk/react";
 import Markdown from "react-markdown";
 import { parse } from "best-effort-json-parser";
@@ -30,6 +30,8 @@ interface LessonViewProps {
 		title: string;
 		emphasisLevel: string;
 		order: number;
+		/** Stored body from a previous visit; regenerated only when absent. */
+		content?: string | null;
 	};
 	userProfile: {
 		age: string;
@@ -42,10 +44,26 @@ export function LessonView({ lesson, userProfile }: LessonViewProps) {
 	const router = useRouter();
 	const isEnglish = userProfile.language?.toLowerCase() === "english";
 
+	// A lesson generated on an earlier visit is replayed from the database, so
+	// revisiting costs nothing and shows the same lesson it did last time.
+	const storedMessages = useMemo<UIMessage[] | undefined>(() => {
+		if (!lesson.content) return undefined;
+
+		return [
+			{
+				id: `stored-${lesson.id}`,
+				role: "assistant",
+				parts: [{ type: "text", text: lesson.content }],
+			},
+		];
+	}, [lesson.content, lesson.id]);
+
 	const { messages, sendMessage } = useChat({
+		messages: storedMessages,
 		transport: new DefaultChatTransport({
 			body: {
 				language: isEnglish ? "English" : "Swahili",
+				lessonId: lesson.id,
 				lessonContext: {
 					title: lesson.title,
 					emphasisLevel: lesson.emphasisLevel,
@@ -61,13 +79,18 @@ export function LessonView({ lesson, userProfile }: LessonViewProps) {
 	const hasStartedRef = useRef(false);
 
 	useEffect(() => {
+		// Nothing to generate when the body was already stored.
+		if (lesson.content) return;
+
 		if (!hasStartedRef.current && messages.length === 0) {
 			hasStartedRef.current = true;
 			sendMessage({
 				text: `Start teaching me the lesson: ${lesson.title}`,
 			});
 		}
-	}, [messages.length, sendMessage, lesson.title]);
+	}, [messages.length, sendMessage, lesson.title, lesson.content]);
+
+	const hasLessonContent = messages.some((message) => message.role !== "user");
 
 	return (
 		<div className="flex h-screen flex-col bg-zinc-950">
@@ -83,7 +106,7 @@ export function LessonView({ lesson, userProfile }: LessonViewProps) {
 			</header>
 
 			<div className="scrollbar scrollbar-thumb-zinc-600 scrollbar-track-zinc-800 flex-1 p-4 sm:p-10">
-				{messages.length > 1 ? (
+				{hasLessonContent ? (
 					<div className="mx-auto flex max-w-4xl flex-col gap-6">
 						{messages.map((message) => {
 							if (message.role !== "user") {
