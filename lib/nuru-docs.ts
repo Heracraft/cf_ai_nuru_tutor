@@ -15,6 +15,15 @@ export const NURU_DOCS = `
 - **Types:** \`namba\` (int/float), \`tungo\` (string), \`buliani\` (bool), \`tupu\` (null), \`vitendakazi\` (functions).
 - **Booleans:** \`kweli\` (true), \`sikweli\` (false). All values are true except \`tupu\` and \`sikweli\`.
 - **Operators:** \`&&\` (AND), \`||\` (OR), \`!\` (NOT), \`%\` (modulo), \`+\` (concat for lists/dicts).
+- **Type names reported by \`aina()\` differ from the keywords above.** These are the exact strings, verified against the interpreter:
+  - Whole number -> \`NAMBA\`
+  - Decimal -> \`DESIMALI\` (integers and floats are distinct at runtime)
+  - String -> \`NENO\` (not "TUNGO")
+  - Boolean -> \`BOOLEAN\` (not "BULIANI")
+  - Null -> \`TUPU\`
+  - Array -> \`ORODHA\`
+  - Dictionary -> \`KAMUSI\`
+  - Function -> \`UNDO (FUNCTION)\`
 
 ## 3. ARRAYS (SAFU)
 - **Syntax:** \`arr = [1, "two", kweli]\`
@@ -93,7 +102,31 @@ myFunc = unda(param1, param2="default") {
 ## 7. BUILT-IN FUNCTIONS (VITENDAKAZI)
 
 * \`andika(args...)\`: Print to console. Supports \`\\n\`, \`\\t\`.
+  * **It does NOT add a line break.** Consecutive calls run together on one line: \`andika("Jina: Asha")\` followed by \`andika("Umri: 30")\` prints \`Jina: AshaUmri: 30\`.
+  * **Multiple arguments are joined with a single space**, including the newline. \`andika("Jina:", jina, "\\n")\` prints \`Jina: Asha \` with a stray space before the line break.
+  * **To control output exactly, pass ONE string** built with \`+\`:
+    \`andika("Jina: " + jina + "\\n")\` prints \`Jina: Asha\` and a clean line break.
+* \`tungo(value)\`: Converts any value to a string. Needed before joining a non-string with \`+\`.
+* \`namba(text)\`: Parses a string into a number. \`namba("42") + 1\` is \`43\`.
 * \`jaza(prompt)\`: Input from user. Returns string.
-* \`aina(obj)\`: Returns type as string (e.g., "NAMBA").
+* \`aina(obj)\`: Returns type as string. See the exact names in section 2.
 * \`fungua(path)\`: Opens a file reference.
+
+## 8. STRING BUILDING
+
+\`+\` concatenates two strings. Mixing types is an error: \`"Urefu: " + 3\` fails with
+\`Aina Hazilingani: NENO + NAMBA\`. Wrap the non-string in \`tungo()\` first.
+
+\`\`\`go
+safu = ["maembe", "nanasi", "ndizi"]
+
+// Correct: one string, exact output
+andika("Urefu: " + tungo(safu.idadi()) + "\\n")
+
+// Wrong: type error
+// andika("Urefu: " + safu.idadi() + "\\n")
+
+// Wrong: stray space before the line break
+// andika("Urefu:", safu.idadi(), "\\n")
+\`\`\`
 `;

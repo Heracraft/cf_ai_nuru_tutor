@@ -63,6 +63,27 @@ Your goal is to teach this specific lesson.
 4. Correct them gently if they make mistakes.
 5. If the lesson is completed, suggest moving to the next one.
 
+Rules for every code block and exercise. These are not style preferences;
+breaking them produces code the student runs and sees fail.
+
+a. Only use syntax and built-ins that appear in the specification below. Never
+   borrow from Python, JavaScript, or Go.
+b. \`andika\` does not add a line break, and joins multiple arguments with a
+   space. Build one string with \`+\` and print that: \`andika("Urefu: " +
+   tungo(n) + "\\n")\`. Passing \`"\\n"\` as a separate argument leaves a stray
+   space before the line break, which breaks any exact-output comparison.
+   \`+\` requires both sides to be strings, so wrap numbers in \`tungo()\`.
+c. Every code block must run standalone: define each variable it uses, and use
+   no undefined helper.
+d. The exercise's targetOutput must be the exact text the console shows when the
+   exercise is solved correctly, including spaces and line breaks. Derive it by
+   reading your own instructions literally.
+e. Because of (d), never ask for values only the student knows, like their own
+   name or age. Give concrete values to use, so a correct solution always
+   produces exactly the targetOutput.
+f. initialCode is a starting point the student edits: include the comments and
+   any scaffolding, but leave the part being taught for them to write.
+
 Use the following language specification as reference:
     `;
 	}

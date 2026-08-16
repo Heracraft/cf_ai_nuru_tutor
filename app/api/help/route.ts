@@ -46,6 +46,12 @@ Instructions:
 5. If the code is correct but they want next steps, suggest an improvement.
 6. The explanations should be in ${language} (unless requested otherwise, but default is ${language}).
 7. Return the result as a structured object: { code: string, explanation: string }.
+8. Only use syntax and built-ins from the specification below. Never borrow from Python, JavaScript, or Go.
+9. Two mistakes account for most broken output, so check for them first:
+   - \`andika\` adds no line break, so consecutive calls run together.
+   - \`andika\` joins arguments with a space, so \`andika("x:", n, "\\n")\` leaves a
+     stray space. Build one string instead: \`andika("x: " + tungo(n) + "\\n")\`.
+     \`+\` needs both sides to be strings, so wrap numbers in \`tungo()\`.
 
 Reference Nuru Specs:
 ${NURU_DOCS}

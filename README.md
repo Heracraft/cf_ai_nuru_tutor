@@ -83,6 +83,16 @@ Deploys restart the whole stack, which means a few seconds of downtime. That is 
 
 At least one provider key is required. The app throws on boot without one, rather than on a student's first click.
 
+## Checking generated code
+
+The tutor writes Nuru, so its output can be verified by running it rather than reading it:
+
+```bash
+echo 'andika("Salamu: " + tungo(1 + 1) + "\n")' | pnpm nuru
+```
+
+`scripts/nuru-run.mjs` drives the same wasm interpreter the in-browser playground uses, and exits non-zero if the program reports an error. This is how the spec in `lib/nuru-docs.ts` was corrected: `aina()` returns `NENO` and `BOOLEAN` rather than the keyword names, `andika` adds no line break and space-joins its arguments, and `tungo()` and `namba()` convert between strings and numbers.
+
 ## Database
 
 ```bash
