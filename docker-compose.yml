@@ -1,0 +1,49 @@
+# One compose file holding the app and its database.
+#
+# This deliberately gives up rolling updates: pushing a new image restarts the
+# whole stack, so expect a few seconds of downtime per deploy. Splitting the
+# app and Postgres into separate Coolify resources is what buys zero-downtime
+# deploys, and that trade is not worth making yet. See TODO.md.
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-3000}:3000"
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-nuru}:${POSTGRES_PASSWORD:-nuru}@db:5432/${POSTGRES_DB:-nuru_tutor}
+
+      # Provider selection. OpenAI wins when both keys are present; set
+      # AI_PROVIDER to force one.
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      GOOGLE_GENERATIVE_AI_API_KEY: ${GOOGLE_GENERATIVE_AI_API_KEY:-}
+      AI_PROVIDER: ${AI_PROVIDER:-}
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-}
+      AI_MODEL_CHAT: ${AI_MODEL_CHAT:-}
+      AI_MODEL_PLAN: ${AI_MODEL_PLAN:-}
+      AI_MODEL_HELP: ${AI_MODEL_HELP:-}
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-nuru}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-nuru}
+      POSTGRES_DB: ${POSTGRES_DB:-nuru_tutor}
+    volumes:
+      - nuru-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-nuru} -d ${POSTGRES_DB:-nuru_tutor}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  nuru-pgdata:

@@ -60,8 +60,8 @@ ${output}
   `;
 
 	const { output: result } = await generateText({
-		model: getModel("utility"),
-		providerOptions: getProviderOptions("utility"),
+		model: getModel("help"),
+		providerOptions: getProviderOptions("help"),
 		messages: [
 			{ role: "system", content: systemPrompt },
 			{ role: "user", content: userContent },

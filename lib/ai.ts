@@ -3,31 +3,46 @@ import { createOpenAI } from "@ai-sdk/openai";
 import type { LanguageModel } from "ai";
 
 /**
- * Two call profiles.
+ * Three call profiles.
  *
  * "chat" streams a structured lesson object that the client parses
- * incrementally, so a schema slip blanks the screen. It gets the better
- * model and a little reasoning budget.
+ * incrementally, so a schema slip blanks the screen.
  *
- * "utility" covers lesson-plan generation and the help button: small,
- * schema-constrained output where a retry costs almost nothing.
+ * "plan" runs once per student and produces the course spine, which is also
+ * the first thing they read. Nano-tier writes visibly broken Swahili here
+ * (shouty casing, invented words), so this one is worth the better model. It
+ * is a single call per user, so the cost difference is a fraction of a cent.
+ *
+ * "help" fires on demand while a student is stuck: frequent, small, and cheap
+ * to retry, so it takes the smallest model.
  */
-export type ModelRole = "chat" | "utility";
+export type ModelRole = "chat" | "plan" | "help";
 
 export type Provider = "openai" | "google";
 
+/**
+ * Reads an env var, treating blank as absent.
+ *
+ * Container platforms inject declared-but-unset variables as empty strings, so
+ * ?? would happily accept "" and skip the fallback.
+ */
+function env(name: string): string | undefined {
+	return process.env[name]?.trim() || undefined;
+}
+
 // The AI SDK reads OPENAI_API_KEY. Accept the underscored spelling too,
 // since that is easy to write and silently wrong otherwise.
-const openaiApiKey =
-	process.env.OPENAI_API_KEY ?? process.env.OPEN_AI_API_KEY ?? undefined;
+const openaiApiKey = env("OPENAI_API_KEY") || env("OPEN_AI_API_KEY");
 
 const googleApiKey =
-	process.env.GOOGLE_GENERATIVE_AI_API_KEY ??
-	process.env.GEMINI_API_KEY ??
-	undefined;
+	env("GOOGLE_GENERATIVE_AI_API_KEY") || env("GEMINI_API_KEY");
+
+// Passed explicitly rather than left to the SDK's own env lookup, which would
+// otherwise pick up an empty OPENAI_BASE_URL and build a relative "/responses".
+const openaiBaseUrl = env("OPENAI_BASE_URL") ?? "https://api.openai.com/v1";
 
 function resolveProvider(): Provider {
-	const explicit = process.env.AI_PROVIDER?.toLowerCase().trim();
+	const explicit = env("AI_PROVIDER")?.toLowerCase();
 
 	if (explicit === "openai" || explicit === "google") {
 		const key = explicit === "openai" ? openaiApiKey : googleApiKey;
@@ -55,25 +70,43 @@ function resolveProvider(): Provider {
 	);
 }
 
-// Resolved once at module load, so a misconfigured container fails on boot
-// rather than on a student's first click.
-export const provider: Provider = resolveProvider();
+let cachedProvider: Provider | null = null;
+
+export function getProvider(): Provider {
+	cachedProvider ??= resolveProvider();
+	return cachedProvider;
+}
+
+// Resolved eagerly so a misconfigured container fails on boot rather than on a
+// student's first click. Skipped during next build, which imports every route
+// module and has no reason to hold real credentials.
+if (process.env.NEXT_PHASE !== "phase-production-build") {
+	getProvider();
+}
 
 const DEFAULT_MODELS: Record<Provider, Record<ModelRole, string>> = {
 	openai: {
 		chat: "gpt-5-mini",
-		utility: "gpt-5-nano",
+		plan: "gpt-5-mini",
+		help: "gpt-5-nano",
 	},
 	google: {
 		chat: "gemini-2.5-flash",
-		utility: "gemini-2.5-flash",
+		plan: "gemini-2.5-flash",
+		help: "gemini-2.5-flash",
 	},
 };
 
+const MODEL_ENV_VAR: Record<ModelRole, string> = {
+	chat: "AI_MODEL_CHAT",
+	plan: "AI_MODEL_PLAN",
+	help: "AI_MODEL_HELP",
+};
+
 function modelId(role: ModelRole): string {
-	const override =
-		role === "chat" ? process.env.AI_MODEL_CHAT : process.env.AI_MODEL_UTILITY;
-	return override?.trim() || DEFAULT_MODELS[provider][role];
+	// AI_MODEL_UTILITY is the older name for the two non-chat roles.
+	const override = env(MODEL_ENV_VAR[role]) || env("AI_MODEL_UTILITY");
+	return override || DEFAULT_MODELS[getProvider()][role];
 }
 
 const openai = openaiApiKey
@@ -81,7 +114,7 @@ const openai = openaiApiKey
 			apiKey: openaiApiKey,
 			// Lets the same code target OpenRouter, Groq, a local vLLM, or anything
 			// else speaking the OpenAI wire format.
-			baseURL: process.env.OPENAI_BASE_URL || undefined,
+			baseURL: openaiBaseUrl,
 		})
 	: null;
 
@@ -92,8 +125,9 @@ const google = googleApiKey
 export function getModel(role: ModelRole): LanguageModel {
 	const id = modelId(role);
 
-	if (provider === "openai") {
-		if (!openai) throw new Error("OpenAI provider selected but not configured.");
+	if (getProvider() === "openai") {
+		if (!openai)
+			throw new Error("OpenAI provider selected but not configured.");
 		return openai(id);
 	}
 
@@ -107,11 +141,13 @@ export function getModel(role: ModelRole): LanguageModel {
  * schema-constrained work, so keep the budget small.
  */
 export function getProviderOptions(role: ModelRole) {
-	if (provider !== "openai") return undefined;
+	if (getProvider() !== "openai") return undefined;
 
+	// Writing natural Swahili needs more than "minimal"; the help route only
+	// annotates existing code, so it does not.
 	return {
 		openai: {
-			reasoningEffort: role === "chat" ? "low" : "minimal",
+			reasoningEffort: role === "help" ? "minimal" : "low",
 		},
 	} as const;
 }
@@ -119,9 +155,10 @@ export function getProviderOptions(role: ModelRole) {
 /** Describes the active configuration, for logs and the health endpoint. */
 export function describeAiConfig() {
 	return {
-		provider,
+		provider: getProvider(),
 		chatModel: modelId("chat"),
-		utilityModel: modelId("utility"),
-		baseUrl: process.env.OPENAI_BASE_URL || null,
+		planModel: modelId("plan"),
+		helpModel: modelId("help"),
+		baseUrl: openaiBaseUrl,
 	};
 }

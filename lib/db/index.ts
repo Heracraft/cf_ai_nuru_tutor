@@ -3,9 +3,13 @@ import postgres from "postgres";
 
 import * as schema from "./schema";
 
+// next build imports every route module, so it would otherwise need a real
+// connection string just to compile.
+const isBuildPhase = process.env.NEXT_PHASE === "phase-production-build";
+
 const connectionString = process.env.DATABASE_URL;
 
-if (!connectionString) {
+if (!connectionString && !isBuildPhase) {
 	throw new Error(
 		"DATABASE_URL is not set. Point it at your Postgres instance, e.g. postgres://nuru:nuru@localhost:5432/nuru_tutor",
 	);
@@ -17,8 +21,13 @@ const globalForDb = globalThis as unknown as {
 	nuruDbClient?: ReturnType<typeof postgres>;
 };
 
+// postgres.js connects lazily, so an unreachable placeholder during the build
+// costs nothing; any real query still needs a real DATABASE_URL.
 const client =
-	globalForDb.nuruDbClient ?? postgres(connectionString, { max: 10 });
+	globalForDb.nuruDbClient ??
+	postgres(connectionString ?? "postgres://build:build@127.0.0.1:5432/build", {
+		max: 10,
+	});
 
 if (process.env.NODE_ENV !== "production") {
 	globalForDb.nuruDbClient = client;

@@ -44,10 +44,12 @@ Hard constraints. Follow every one of them.
 2. Only cover concepts that appear in the specification below. Do not invent Nuru syntax, keywords, or built-in functions.
 3. Each lesson teaches exactly one concept. Do not bundle unrelated topics into a single lesson.
 4. Lesson 1 must be reachable by someone who has never programmed, unless the learner reports prior experience.
-5. Titles must be written in ${targetLanguage} and must name the concept concretely. Reject vague titles such as "Getting Started" or "Advanced Topics".
-6. The slug must be lowercase ASCII kebab-case and must not repeat across lessons.
-7. Set emphasisLevel by how much drilling this specific learner needs: someone arriving from Python needs "low" on variables and loops, while an absolute beginner needs "high".
-8. Pitch the wording for a ${age}-year-old. Do not write childishly for an adult, and do not write academically for a twelve-year-old.
+5. Titles must be written in fluent, grammatical ${targetLanguage} and must name the concept concretely. Reject vague titles such as "Getting Started" or "Advanced Topics".
+6. A title is a descriptive phrase of three to eight words saying what the learner will be able to do, not a bare keyword. "Safu" is too short; "Kutumia safu kuhifadhi orodha ya vitu" is right. Capitalise only the first letter and any Nuru keyword. Never use ALL CAPS.
+7. Every word in a title must be a real ${targetLanguage} word. Do not invent words, and do not transliterate an English term when ${targetLanguage} already has one. Where a Nuru keyword is the subject, use the keyword itself (for example "safu", "kamusi", "vitendakazi") rather than an invented translation.
+8. The slug must be lowercase ASCII kebab-case and must not repeat across lessons.
+9. Set emphasisLevel by how much drilling this specific learner needs: someone arriving from Python needs "low" on variables and loops, while an absolute beginner needs "high".
+10. Pitch the wording for a ${age}-year-old. Do not write childishly for an adult, and do not write academically for a twelve-year-old.
 
 Nuru language specification, the only source of truth for what the language can do:
 
@@ -69,8 +71,8 @@ export async function runGeneration(input: GenerationInput): Promise<void> {
 		await setStage(jobId, "profile");
 
 		const { elementStream } = streamText({
-			model: getModel("utility"),
-			providerOptions: getProviderOptions("utility"),
+			model: getModel("plan"),
+			providerOptions: getProviderOptions("plan"),
 			abortSignal: AbortSignal.timeout(GENERATION_TIMEOUT_MS),
 			prompt: buildPrompt(input),
 			output: Output.array({

@@ -1,0 +1,13 @@
+node_modules
+.next
+.git
+.github
+.agents
+.claude
+.env*
+!.env.example
+npm-debug.log*
+README.md
+TODO.md
+PROMPTS.md
+skills-lock.json
